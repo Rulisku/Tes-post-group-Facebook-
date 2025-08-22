@@ -3,7 +3,8 @@ const fs = require('fs');
 
 (async () => {
   // Load cookies dari file (ganti path dengan file cookies-mu)
-  const cookies = JSON.parse(fs.readFileSync('cookies.json', 'utf8'));
+  
+const cookies = JSON.parse(fs.readFileSync(__dirname + '/cookies.json', 'utf8'));
 
   // Data posting (ganti sesuai kebutuhan)
   const groupUrl = 'https://facebook.com/groups/220865376056610/';
