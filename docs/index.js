@@ -10,10 +10,11 @@ const fs = require('fs');
   const caption = 'Halo, ini posting otomatis dari Puppeteer!';
 
   const browser = await puppeteer.launch({
-    headless: false, // Biar bisa lihat prosesnya
+    headless: true, // Biar bisa lihat prosesnya
     defaultViewport: null,
-    args: ['--start-maximized']
-  });
+    args: ['--no-sandbox', '--disable-setuid-sandbox']
+});
+
   const page = await browser.newPage();
 
   // Set cookies
