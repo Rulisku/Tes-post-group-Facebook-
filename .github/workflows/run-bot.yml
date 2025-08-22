@@ -19,11 +19,7 @@ jobs:
   run: |
     rm -f package-lock.json
     npm install puppeteer@latest --force
-    npm ls puppeteer
-
-
-      - name: List puppeteer version
-        run: npm ls puppeteer
+    npm ls puppeter
 
       - name: Run bot
         run: node docs/index.js
