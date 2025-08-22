@@ -29,7 +29,7 @@ const cookies = JSON.parse(fs.readFileSync(__dirname + '/cookies.json', 'utf8'))
     const writeBtn = document.querySelector('span[class*="Write something"], span[class*="Tulis sesuatu"]');
     if (writeBtn) writeBtn.click();
   });
-  await page.waitForTimeout(1000);
+  await page.waitFor(1000);
 
   // Isi caption
   await page.evaluate((text) => {
@@ -40,7 +40,7 @@ const cookies = JSON.parse(fs.readFileSync(__dirname + '/cookies.json', 'utf8'))
       textbox.dispatchEvent(new Event('input', { bubbles: true }));
     }
   }, caption);
-  await page.waitForTimeout(1000);
+  await page.waitFor(1000);
 
   // Klik tombol "Post"
   await page.evaluate(() => {
@@ -50,7 +50,7 @@ const cookies = JSON.parse(fs.readFileSync(__dirname + '/cookies.json', 'utf8'))
   });
 
   console.log('✅ Posted to group!');
-  await page.waitForTimeout(3000);
+  await page.waitFor(3000);
 
   await browser.close();
 })();
