@@ -1,12 +1,11 @@
 name: Run Facebook Bot
 
 on:
-  workflow_dispatch: # bisa dijalankan manual dari tab Actions
+  workflow_dispatch:
 
 jobs:
   run-bot:
     runs-on: ubuntu-latest
-
     steps:
       - name: Checkout repo
         uses: actions/checkout@v3
@@ -18,8 +17,8 @@ jobs:
 
       - name: Install dependencies
         run: |
+          npm init -y
           npm install puppeteer
 
-      - name: Run Puppeteer bot
-        run: |
-          node index.js
+      - name: Run bot
+        run: node index.js
