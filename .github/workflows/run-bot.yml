@@ -21,4 +21,4 @@ jobs:
           npm install puppeteer
 
       - name: Run bot
-        run: node index.js
+        run: node docs/index.js
