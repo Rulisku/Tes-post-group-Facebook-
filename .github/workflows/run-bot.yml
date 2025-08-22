@@ -16,9 +16,7 @@ jobs:
           node-version: 18
 
       - name: Install dependencies
-        run: |
-          npm init -y
-          npm install puppeteer
-
+        run:  npm install 
+        
       - name: Run bot
         run: node docs/index.js
