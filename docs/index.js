@@ -20,35 +20,33 @@ const cookies = JSON.parse(fs.readFileSync(__dirname + '/cookies.json', 'utf8'))
 
   // Set cookies
   await page.setCookie(...cookies);
+   
+  //1. Buka Facebook.com dulu untuk pastikan login
+  await page.goto('https://facebook.com', { waitUntil: 'networkidle2' });
 
   // Buka grup Facebook
   await page.goto(groupUrl, { waitUntil: 'networkidle2' });
 
-  // Klik area "Write something"
-  await page.evaluate(() => {
-    const writeBtn = document.querySelector('span[class*="Write something"], span[class*="Tulis sesuatu"]');
-    if (writeBtn) writeBtn.click();
-  });
-  
-await new Promise(resolve => setTimeout(resolve, 1000));
-  // Isi caption
-  await page.evaluate((text) => {
-    const textbox = document.querySelector('[contenteditable="true"]');
-    if (textbox) {
-      textbox.focus();
-      document.execCommand('insertText', false, text);
-      textbox.dispatchEvent(new Event('input', { bubbles: true }));
-    }
-  }, caption);
+    // Langkah 1: Klik area "Write something..." di feed grup
+  await page.waitForSelector('div[aria-label="Write something..."], div[role="textbox"][aria-label="Write something..."]', {timeout: 10000});
+  await page.click('div[aria-label="Write something..."], div[role="textbox"][aria-label="Write something..."]');
   await new Promise(resolve => setTimeout(resolve, 1000));
-  // Klik tombol "Post"
+
+  // Isi caption
+  //Langkah 2: Tunggu form posting muncul, isi caption di kotak besar
+  await page.waitForSelector('div[contenteditable="true"]', {timeout: 10000});
+  await page.focus('div[contenteditable="true"]');
+  await page.keyboard.type(caption);
+  await new Promise(resolve => setTimeout(resolve, 1000));
   await page.evaluate(() => {
     // Coba cari tombol "Post" atau "Kirim"
-    const postBtn = document.querySelector('button[type=submit], [aria-label="Post"], [aria-label="Kirim"]');
-    if (postBtn) postBtn.click();
-  });
+    
+  // Klik tombol POST (atas atau bawah)
+  const postSelector = 'div[aria-label="Post"], button[type="submit"], div[role="button"][aria-label="POST"], div[role="button"][aria-label="Post"]';
+  await page.waitForSelector(postSelector, {timeout: 10000});
+  await page.click(postSelector);
 
   console.log('✅ Posted to group!');
-  await new Promise(resolve => setTimeout(resolve, 1000));  
+  await new Promise(resolve => setTimeout(resolve, 2000));
   await browser.close();
 })();
