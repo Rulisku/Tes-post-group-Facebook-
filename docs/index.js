@@ -53,7 +53,7 @@ async function openComposer(page) {
     });
     console.log("✅ Composer dibuka (fallback innerText)");
   }
-  await page.waitForTimeout(1500); // tunggu composer muncul
+  await new Promise(resolve => setTimeout(resolve, 2000)); await browser.close(); })(); // tunggu composer muncul
 }
 
 async function typeCaption(page, text) {
