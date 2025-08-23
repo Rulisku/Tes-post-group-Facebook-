@@ -2,15 +2,15 @@ const puppeteer = require('puppeteer');
 const fs = require('fs');
 
 (async () => {
-  // Load cookies dari file (ganti path dengan file cookies-mu)
+  // Load cookies dari file
   const cookies = JSON.parse(fs.readFileSync(__dirname + '/cookies.json', 'utf8'));
 
-  // Data posting (ganti sesuai kebutuhan)
-  const groupUrl = 'https://facebook.com/groups/1612669432331653/';
+  // Data posting
+  const groupUrl = 'https://m.facebook.com/groups/1612669432331653/';
   const caption = 'Halo, ini posting otomatis dari Puppeteer!';
 
   const browser = await puppeteer.launch({
-    headless: true, // true = tidak kelihatan, false = debug mode
+    headless: true, // false kalau mau lihat debug
     defaultViewport: null,
     args: ['--no-sandbox', '--disable-setuid-sandbox']
   });
@@ -20,48 +20,46 @@ const fs = require('fs');
   // Set cookies
   await page.setCookie(...cookies);
 
-  // Buka Facebook.com dulu untuk pastikan login
-  await page.goto('https://facebook.com', { waitUntil: 'networkidle2' });
+  // Buka Facebook
+  await page.goto('https://m.facebook.com', { waitUntil: 'networkidle2' });
 
-  // Buka grup Facebook
+  // Buka grup
   await page.goto(groupUrl, { waitUntil: 'networkidle2' });
 
-  // Klik tombol "Write something..." dulu
-await page.evaluate(() => {
-  const span = [...document.querySelectorAll("span")]
-    .find(e => e.innerText?.toLowerCase().includes("write something"));
+  // Klik tombol "Write something..." (placeholder composer)
+  await page.evaluate(() => {
+    const btn = [...document.querySelectorAll("div[role='button']")]
+      .find(el => el.innerText?.toLowerCase().includes("write something") 
+               || el.innerText?.toLowerCase().includes("buat postingan"));
 
-  if (span) {
-    console.log("✅ Dapat elemen span Write something:", span);
+    if (btn) {
+      ["mousedown","mouseup","click"].forEach(type => {
+        btn.dispatchEvent(new MouseEvent(type, { bubbles:true, cancelable:true, view:window }));
+      });
+      console.log("👉 Klik placeholder berhasil");
+    }
+  });
 
-    // cari parent terdekat yang bisa di-klik
-    let el = span.closest("div[role=button], div[data-mcomponent], div[tabindex]");
-    if (!el) el = span.parentElement;
+  // Tunggu textbox composer muncul
+  await page.waitForSelector("textarea[name='xc_message'], textarea", { timeout: 10000 });
 
-    // Coba berbagai event supaya React terpicu
-    ["mousedown","mouseup","click"].forEach(type => {
-      el.dispatchEvent(new MouseEvent(type, { bubbles:true, cancelable:true, view:window }));
-    });
+  // Isi caption langsung dari evaluate (agar event FB ter-trigger)
+  await page.evaluate((caption) => {
+    const tb = document.querySelector("textarea[name='xc_message'], textarea");
+    if (tb) {
+      tb.focus();
+      tb.value = caption;
+      tb.dispatchEvent(new Event("input", { bubbles:true }));
+      tb.dispatchEvent(new Event("change", { bubbles:true }));
+    }
+  }, caption);
 
-    ["touchstart","touchend"].forEach(type => {
-      el.dispatchEvent(new TouchEvent(type, { bubbles:true, cancelable:true }));
-    });
-  }
-});
+  console.log("✅ Caption berhasil dimasukkan");
 
-
-  // Tunggu sampai textbox muncul setelah klik "Write something..."
-const textBox = await page.waitForSelector(
-  "div[role='textbox'], textarea[name='xc_message'], div[contenteditable='true']",
-  { timeout: 10000 }
-);
-  // 5. Isi caption
-  await page.type("div[role='textbox']", caption);
-
-  // 6. Klik tombol Post
-  const postButton = await page.$x("//span[contains(text(),'Post') or contains(text(),'Kirim')]");
-  if (postButton.length) {
-    await postButton[0].click();
+  // Klik tombol Post
+  const [postButton] = await page.$x("//span[contains(text(),'Post') or contains(text(),'Kirim')]");
+  if (postButton) {
+    await postButton.click();
     console.log("✅ Post berhasil diklik");
   } else {
     console.log("❌ Tombol Post tidak ditemukan");
