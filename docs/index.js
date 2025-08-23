@@ -27,10 +27,10 @@ const fs = require('fs');
   await page.goto(groupUrl, { waitUntil: 'networkidle2' });
 
   // Langkah 1: Klik area "Write something..." di feed
-  //pakai placeholder role
-await page.waitForSelector('div[role="button"][aria-label="Write something..."]');
-await page.click('div[role="button"][aria-label="Write something..."]');
-await new Promise(resolve => setTimeout(resolve, 1000));
+ // Atau gunakan selector yang lebih umum:
+ await page.waitForSelector('div[role="button"][tabindex="0"]', { timeout: 60000 }); );
+ await page.click('div[role="button"][aria-label="Write something..."]');
+ await new Promise(resolve => setTimeout(resolve, 1000));
 
   // Langkah 2: Tunggu form posting muncul, isi caption di kotak besar
   await page.waitForSelector('div[role="textbox"][contenteditable="true"]', {timeout: 10000});
