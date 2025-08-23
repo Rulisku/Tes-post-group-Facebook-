@@ -26,7 +26,7 @@ const fs = require('fs');
   // Buka grup Facebook
   await page.goto(groupUrl, { waitUntil: 'networkidle2' });
 
-  / 2. Tunggu sampai "Write something..." muncul
+  // 2. Tunggu sampai "Write something..." muncul
   await page.waitForSelector("span", { timeout: 15000 });
 
   // 3. Cari elemen composer (pakai evaluate di browser context)
@@ -60,7 +60,7 @@ const fs = require('fs');
   await page.waitForSelector("div[role='textbox']", { timeout: 10000 });
 
   // 5. Isi caption
-  await page.type("div[role='textbox']", "Halo ini posting otomatis dari Puppeteer 🚀");
+  await page.type("div[role='textbox']", caption);
 
   // 6. Klik tombol Post
   const postButton = await page.$x("//span[contains(text(),'Post') or contains(text(),'Kirim')]");
@@ -73,4 +73,3 @@ const fs = require('fs');
 
   // await browser.close();
 })();
-  }
