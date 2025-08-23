@@ -10,7 +10,7 @@ const fs = require('fs');
   const caption = 'Halo, ini posting otomatis dari Puppeteer!';
 
   const browser = await puppeteer.launch({
-    headless: true, // Biar bisa lihat prosesnya
+    headless: true, // true = tidak kelihatan, false = debug mode
     defaultViewport: null,
     args: ['--no-sandbox', '--disable-setuid-sandbox']
   });
@@ -26,18 +26,26 @@ const fs = require('fs');
   // Buka grup Facebook
   await page.goto(groupUrl, { waitUntil: 'networkidle2' });
 
-  // Langkah 1: Klik area "Write something..." di feed
- // Atau gunakan selector yang lebih
+  // Step 1: buka composer ("Write something...")
   await openComposer(page);
-  async function openComposer(page) {
+
+  // Step 2: isi caption & klik tombol Post
+  await typeCaption(page, caption);
+
+  console.log('✅ Posted to group!');
+  await browser.close();
+})();
+
+// ----------------- Helper Functions -----------------
+
+async function openComposer(page) {
   try {
-    // Cari tombol berdasarkan aria-label
     const btnSel = '[aria-label="Write something..."], [aria-label="Tulis sesuatu..."]';
     await page.waitForSelector(btnSel, { timeout: 5000 });
     await page.click(btnSel);
     console.log("✅ Composer dibuka (klik tombol Write something)");
   } catch {
-    // Fallback innerText
+    // fallback cari text
     await page.evaluate(() => {
       const el = [...document.querySelectorAll('div, span')]
         .find(e => e.innerText?.includes("Write something") || e.innerText?.includes("Tulis sesuatu"));
@@ -45,15 +53,11 @@ const fs = require('fs');
     });
     console.log("✅ Composer dibuka (fallback innerText)");
   }
- 
-  await new Promise(resolve => setTimeout(resolve, 1000)); // tunggu composer muncul
+  await page.waitForTimeout(1500); // tunggu composer muncul
 }
 
-  // Langkah 2: Tunggu form posting muncul, isi caption di kotak besar
-  await typeCaption(page, caption);
-  async function typeCaption(page, text) {
+async function typeCaption(page, text) {
   try {
-    // Cari textbox di composer
     const boxSel = 'div[role="textbox"], [contenteditable="true"]';
     await page.waitForSelector(boxSel, { timeout: 5000 });
     await page.type(boxSel, text, { delay: 50 });
@@ -62,13 +66,9 @@ const fs = require('fs');
     console.error("❌ Gagal menemukan textbox composer");
   }
 
-
-  // Klik tombol POST (atas atau bawah)
-  const postSelector = 'div[aria-label="Post"], button[type="submit"], div[role="button"][aria-label="POST"], div[role="button"][aria-label="Post"]';
-  await page.waitForSelector(postSelector, {timeout: 10000});
+  // Klik tombol POST
+  const postSelector = 'div[aria-label="Post"], div[aria-label="Kirim"], button[type="submit"]';
+  await page.waitForSelector(postSelector, { timeout: 10000 });
   await page.click(postSelector);
-
-  console.log('✅ Posted to group!');
-  await new Promise(resolve => setTimeout(resolve, 2000));
-  await browser.close();
-})();
+  console.log("✅ Klik tombol Post");
+}
