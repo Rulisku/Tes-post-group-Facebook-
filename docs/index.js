@@ -2,48 +2,63 @@ const puppeteer = require('puppeteer');
 const fs = require('fs');
 
 (async () => {
-  // Load cookies dari file
   const cookies = JSON.parse(fs.readFileSync(__dirname + '/cookies.json', 'utf8'));
 
-  // Data posting
   const groupUrl = 'https://m.facebook.com/groups/1612669432331653/';
-  const caption = 'Halo, ini posting otomatis dari Puppeteer!';
+  const caption = 'Halo, ini posting otomatis dari Puppeteer versi mobile!';
 
   const browser = await puppeteer.launch({
-    headless: true, // false kalau mau lihat debug
-    defaultViewport: null,
-    args: ['--no-sandbox', '--disable-setuid-sandbox']
+    headless: true,
+    defaultViewport: {
+      width: 412,
+      height: 915,
+      isMobile: true,
+      hasTouch: true
+    },
+    args: [
+      '--no-sandbox',
+      '--disable-setuid-sandbox',
+      '--disable-blink-features=AutomationControlled'
+    ]
   });
 
   const page = await browser.newPage();
 
+  // 🟢 Samakan User-Agent dengan Chrome Android (sama kayak di Kiwi)
+  await page.setUserAgent(
+    "Mozilla/5.0 (Linux; Android 10; K) AppleWebKit/537.36 " +
+    "(KHTML, like Gecko) Chrome/115.0.0.0 Mobile Safari/537.36"
+  );
+
   // Set cookies
   await page.setCookie(...cookies);
 
-  // Buka Facebook
+  // Buka m.facebook.com
   await page.goto('https://m.facebook.com', { waitUntil: 'networkidle2' });
 
   // Buka grup
   await page.goto(groupUrl, { waitUntil: 'networkidle2' });
 
-  // Klik tombol "Write something..." (placeholder composer)
+  // Klik placeholder "Write something"
   await page.evaluate(() => {
     const btn = [...document.querySelectorAll("div[role='button']")]
       .find(el => el.innerText?.toLowerCase().includes("write something") 
                || el.innerText?.toLowerCase().includes("buat postingan"));
-
     if (btn) {
       ["mousedown","mouseup","click"].forEach(type => {
         btn.dispatchEvent(new MouseEvent(type, { bubbles:true, cancelable:true, view:window }));
       });
-      console.log("👉 Klik placeholder berhasil");
     }
   });
 
-  // Tunggu textbox composer muncul
-  await page.waitForSelector("textarea[name='xc_message'], textarea", { timeout: 10000 });
+  // Tunggu textbox muncul
+  const textBox = await page.waitForSelector("textarea[name='xc_message'], textarea", { timeout: 15000 });
 
-  // Isi caption langsung dari evaluate (agar event FB ter-trigger)
+  // 🟢 Isi caption dengan 2 cara:
+  // 1. via Puppeteer API
+  await textBox.type(caption).catch(() => {}); // abaikan error kalau gagal
+
+  // 2. via evaluate (agar event FB ter-trigger dengan pasti)
   await page.evaluate((caption) => {
     const tb = document.querySelector("textarea[name='xc_message'], textarea");
     if (tb) {
@@ -56,14 +71,14 @@ const fs = require('fs');
 
   console.log("✅ Caption berhasil dimasukkan");
 
-  // Klik tombol Post
+  // Klik tombol Post / Kirim
   const [postButton] = await page.$x("//span[contains(text(),'Post') or contains(text(),'Kirim')]");
   if (postButton) {
     await postButton.click();
-    console.log("✅ Post berhasil diklik");
+    console.log("✅ Post berhasil dikirim");
   } else {
     console.log("❌ Tombol Post tidak ditemukan");
   }
 
-  // await browser.close();
+  await browser.close();
 })();
