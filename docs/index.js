@@ -87,13 +87,33 @@ await new Promise(resolve => setTimeout(resolve, 3000));
   }, 3000);
 })();
   // Klik tombol Post / Kirim
-  const [postButton] = await page.$x("//span[contains(text(),'Post') or contains(text(),'Kirim')]");
-  if (postButton) {
-    await postButton.click();
-    console.log("✅ Post berhasil dikirim");
-  } else {
-    console.log("❌ Tombol Post tidak ditemukan");
-  }
+  // Cari tombol POST berdasarkan teks
+const span = [...document.querySelectorAll("span")]
+  .find(e => e.innerText?.toLowerCase() === "post");
+
+if (span) {
+  console.log("✅ Dapat elemen span POST:", span);
+
+  // cari parent terdekat yang bisa di-klik
+  let el = span.closest("div[role=button], div[data-mcomponent], div[tabindex]");
+  if (!el) el = span.parentElement;
+
+  console.log("Target klik:", el);
+
+  // Trigger event seperti klik nyata agar React/Vue terpicu
+  ["mousedown","mouseup","click"].forEach(type => {
+    el.dispatchEvent(new MouseEvent(type, { bubbles:true, cancelable:true, view:window }));
+  });
+
+  ["touchstart","touchend"].forEach(type => {
+    el.dispatchEvent(new TouchEvent(type, { bubbles:true, cancelable:true }));
+  });
+
+  console.log("✅ Event dikirim ke elemen POST");
+} else {
+  console.log("❌ Tidak ketemu tombol POST");
+}
+
 
   await browser.close();
 })();
