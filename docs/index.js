@@ -26,49 +26,51 @@ const fs = require('fs');
   // Buka grup Facebook
   await page.goto(groupUrl, { waitUntil: 'networkidle2' });
 
-  // Step 1: buka composer ("Write something...")
-  await openComposer(page);
+  / 2. Tunggu sampai "Write something..." muncul
+  await page.waitForSelector("span", { timeout: 15000 });
 
-  // Step 2: isi caption & klik tombol Post
-  await typeCaption(page, caption);
+  // 3. Cari elemen composer (pakai evaluate di browser context)
+  await page.evaluate(() => {
+    const span = [...document.querySelectorAll("span")]
+      .find(e => e.innerText?.toLowerCase().includes("write something")
+              || e.innerText?.toLowerCase().includes("tulis sesuatu"));
 
-  console.log('✅ Posted to group!');
-  await browser.close();
-})();
+    if (!span) {
+      console.log("❌ Tidak ketemu tombol composer");
+      return;
+    }
 
-// ----------------- Helper Functions -----------------
+    let el = span.closest("div[data-mcomponent='TextArea']")
+             || span.closest("div[role='textbox']")
+             || span.parentElement;
 
-async function openComposer(page) {
-  try {
-    const btnSel = '[aria-label="Write something..."], [aria-label="Tulis sesuatu..."]';
-    await page.waitForSelector(btnSel, { timeout: 5000 });
-    await page.click(btnSel);
-    console.log("✅ Composer dibuka (klik tombol Write something)");
-  } catch {
-    // fallback cari text
-    await page.evaluate(() => {
-      const el = [...document.querySelectorAll('div, span')]
-        .find(e => e.innerText?.includes("Write something") || e.innerText?.includes("Tulis sesuatu"));
-      if (el) el.click();
+    if (!el) {
+      console.log("❌ Tidak ketemu elemen klik");
+      return;
+    }
+
+    ["mousedown","mouseup","click"].forEach(type => {
+      el.dispatchEvent(new MouseEvent(type, { bubbles:true, cancelable:true, view:window }));
     });
-    console.log("✅ Composer dibuka (fallback innerText)");
-  }
-  await new Promise(resolve => setTimeout(resolve, 2000)); await browser.close(); })(); // tunggu composer muncul
-}
 
-async function typeCaption(page, text) {
-  try {
-    const boxSel = 'div[role="textbox"], [contenteditable="true"]';
-    await page.waitForSelector(boxSel, { timeout: 5000 });
-    await page.type(boxSel, text, { delay: 50 });
-    console.log("✅ Caption berhasil ditulis");
-  } catch {
-    console.error("❌ Gagal menemukan textbox composer");
+    console.log("✅ Composer dibuka aman 👍");
+  });
+
+  // 4. Tunggu textbox aktif (role="textbox" muncul)
+  await page.waitForSelector("div[role='textbox']", { timeout: 10000 });
+
+  // 5. Isi caption
+  await page.type("div[role='textbox']", "Halo ini posting otomatis dari Puppeteer 🚀");
+
+  // 6. Klik tombol Post
+  const postButton = await page.$x("//span[contains(text(),'Post') or contains(text(),'Kirim')]");
+  if (postButton.length) {
+    await postButton[0].click();
+    console.log("✅ Post berhasil diklik");
+  } else {
+    console.log("❌ Tombol Post tidak ditemukan");
   }
 
-  // Klik tombol POST
-  const postSelector = 'div[aria-label="Post"], div[aria-label="Kirim"], button[type="submit"]';
-  await page.waitForSelector(postSelector, { timeout: 10000 });
-  await page.click(postSelector);
-  console.log("✅ Klik tombol Post");
-}
+  // await browser.close();
+})();
+  }
