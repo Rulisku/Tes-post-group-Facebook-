@@ -26,24 +26,14 @@ const fs = require('fs');
   // Buka grup Facebook
   await page.goto(groupUrl, { waitUntil: 'networkidle2' });
 
-  // Langkah 1: Klik area "Write something..." di feed 
-  // pakai aria-label
-await page.waitForSelector('[aria-label="Write something..."]');
-await page.click('[aria-label="Write something..."]');
-
-// atau pakai placeholder role
+  // Langkah 1: Klik area "Write something..." di feed
+  //pakai placeholder role
 await page.waitForSelector('div[role="button"][aria-label="Write something..."]');
 await page.click('div[role="button"][aria-label="Write something..."]');
-
-// fallback pakai teks (untuk bahasa lain, misalnya "Tulis sesuatu")
-await page.evaluate(() => {
-  const el = [...document.querySelectorAll('div, span')]
-    .find(e => e.innerText?.includes("Write something") || e.innerText?.includes("Tulis sesuatu"));
-  if (el) el.click();
-});
+await new Promise(resolve => setTimeout(resolve, 1000));
 
   // Langkah 2: Tunggu form posting muncul, isi caption di kotak besar
-  await page.waitForSelector('div[contenteditable="true"]', {timeout: 10000});
+  await page.waitForSelector('div[role="textbox"][contenteditable="true"]', {timeout: 10000});
   await page.focus('div[contenteditable="true"]');
   await page.keyboard.type(caption);
   await new Promise(resolve => setTimeout(resolve, 1000));
