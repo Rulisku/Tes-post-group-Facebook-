@@ -52,8 +52,7 @@ await page.evaluate(() => {
 });
 
 // kasih delay 3s biar composer sempat render
-await page.waitForTimeout(3000);
-
+await new Promise(resolve => setTimeout(resolve, 3000));
 // selector lebih luas
 const composerSelector = "textarea[name='xc_message'], textarea, div[role='textbox'], div.native-text[contenteditable='true']";
 const textBox = await page.waitForSelector(composerSelector, { timeout: 15000 }).catch(() => null);
