@@ -39,37 +39,45 @@ const fs = require('fs');
   // Buka grup
   await page.goto(groupUrl, { waitUntil: 'networkidle2' });
 
-  // Klik placeholder "Write something"
-  await page.evaluate(() => {
-    const btn = [...document.querySelectorAll("div[role='button']")]
-      .find(el => el.innerText?.toLowerCase().includes("write something") 
-               || el.innerText?.toLowerCase().includes("buat postingan"));
-    if (btn) {
-      ["mousedown","mouseup","click"].forEach(type => {
-        btn.dispatchEvent(new MouseEvent(type, { bubbles:true, cancelable:true, view:window }));
-      });
-    }
-  });
+  // klik "Write something"
+await page.evaluate(() => {
+  const btn = [...document.querySelectorAll("div[role='button']")]
+    .find(el => el.innerText?.toLowerCase().includes("write something") 
+             || el.innerText?.toLowerCase().includes("buat postingan"));
+  if (btn) {
+    ["mousedown","mouseup","click"].forEach(type => {
+      btn.dispatchEvent(new MouseEvent(type, { bubbles:true, cancelable:true, view:window }));
+    });
+  }
+});
 
-  // Tunggu textbox muncul
-  const textBox = await page.waitForSelector("textarea[name='xc_message'], textarea", { timeout: 15000 });
+// kasih delay 3s biar composer sempat render
+await page.waitForTimeout(3000);
 
-  // 🟢 Isi caption dengan 2 cara:
-  // 1. via Puppeteer API
-  await textBox.type(caption).catch(() => {}); // abaikan error kalau gagal
+// selector lebih luas
+const composerSelector = "textarea[name='xc_message'], textarea, div[role='textbox'], div.native-text[contenteditable='true']";
+const textBox = await page.waitForSelector(composerSelector, { timeout: 15000 }).catch(() => null);
 
-  // 2. via evaluate (agar event FB ter-trigger dengan pasti)
-  await page.evaluate((caption) => {
-    const tb = document.querySelector("textarea[name='xc_message'], textarea");
-    if (tb) {
-      tb.focus();
-      tb.value = caption;
-      tb.dispatchEvent(new Event("input", { bubbles:true }));
-      tb.dispatchEvent(new Event("change", { bubbles:true }));
-    }
-  }, caption);
+if (!textBox) {
+  console.log("❌ Textbox tidak ketemu, dump HTML");
+  const html = await page.content();
+  require('fs').writeFileSync("debug.html", html);
+  process.exit(1);
+}
 
-  console.log("✅ Caption berhasil dimasukkan");
+// isi caption via evaluate
+await page.evaluate((caption, selector) => {
+  const tb = document.querySelector(selector);
+  if (tb) {
+    tb.focus();
+    tb.innerText = caption;
+    tb.value = caption;
+    tb.dispatchEvent(new Event("input", { bubbles: true }));
+    tb.dispatchEvent(new Event("change", { bubbles: true }));
+  }
+}, caption, composerSelector);
+
+console.log("✅ Caption berhasil dimasukkan");
 
   // Klik tombol Post / Kirim
   const [postButton] = await page.$x("//span[contains(text(),'Post') or contains(text(),'Kirim')]");
