@@ -6,7 +6,7 @@ const fs = require('fs');
   const cookies = JSON.parse(fs.readFileSync(__dirname + '/cookies.json', 'utf8'));
 
   // Data posting (ganti sesuai kebutuhan)
-  const groupUrl = 'https://facebook.com/groups/220865376056610/';
+  const groupUrl = 'https://facebook.com/groups/1612669432331653/';
   const caption = 'Halo, ini posting otomatis dari Puppeteer!';
 
   const browser = await puppeteer.launch({
