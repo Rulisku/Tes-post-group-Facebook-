@@ -40,80 +40,69 @@ const fs = require('fs');
   await page.goto(groupUrl, { waitUntil: 'networkidle2' });
 
   // klik "Write something"
-await page.evaluate(() => {
+
+await page.evaluate((caption) => {
+  // cari tombol "Write something" / "Buat postingan"
   const btn = [...document.querySelectorAll("div[role='button']")]
-    .find(el => el.innerText?.toLowerCase().includes("write something") 
+    .find(el => el.innerText?.toLowerCase().includes("write something")
              || el.innerText?.toLowerCase().includes("buat postingan"));
+  
   if (btn) {
     ["mousedown","mouseup","click"].forEach(type => {
       btn.dispatchEvent(new MouseEvent(type, { bubbles:true, cancelable:true, view:window }));
     });
+
+    // tunggu sebentar supaya composer muncul
+    setTimeout(() => {
+      const tb = document.querySelector("textarea[name='xc_message'], textarea");
+      if (tb) {
+        tb.focus();
+        tb.value = caption;
+        tb.dispatchEvent(new Event("input", { bubbles:true }));
+        tb.dispatchEvent(new Event("change", { bubbles:true }));
+        console.log("✅ Caption berhasil diisi:", tb.value);
+      } else {
+        console.log("❌ Textarea masih tidak muncul");
+      }
+    }, 3000);
+  } else {
+    console.log("❌ Tombol 'Write something' tidak ditemukan");
   }
-});
+}, caption); // caption dikirim dari Node.js ke page context
 
 // kasih delay 3s biar composer sempat render
 await new Promise(resolve => setTimeout(resolve, 3000));
 
-(async function(){
-  // cari tombol "Write something" di dalam composer
-  const btn = [...document.querySelectorAll("div[role='button']")]
-    .find(el => el.innerText?.toLowerCase().includes("write something") 
-             || el.innerText?.toLowerCase().includes("buat postingan"));
 
-  if (!btn) {
-    console.log("❌ Placeholder 'Write something' tidak ditemukan");
-    return;
-  }
-
-  // klik tombol supaya FB ganti jadi textbox textarea
-  ["mousedown","mouseup","click"].forEach(type => {
-    btn.dispatchEvent(new MouseEvent(type, { bubbles:true, cancelable:true, view:window }));
-  });
-
-  console.log("👉 Klik placeholder berhasil, tunggu textbox muncul...");
-
-  // tunggu 1 detik biar DOM update
-  setTimeout(() => {
-    const tb = document.querySelector("textarea[name='xc_message'], textarea");
-    if (tb) {
-      tb.focus();
-      tb.value = caption;
-      tb.dispatchEvent(new Event("input", { bubbles:true }));
-      tb.dispatchEvent(new Event("change", { bubbles:true }));
-      console.log("✅ Caption berhasil diisi:", tb.value);
-    } else {
-      console.log("❌ Textarea masih tidak muncul");
-    }
-  }, 3000);
-})();
   // Klik tombol Post / Kirim
   // Cari tombol POST berdasarkan teks
-const span = [...document.querySelectorAll("span")]
-  .find(e => e.innerText?.toLowerCase() === "post");
+await page.evaluate(() => {
+  // cari span dengan teks "Post"
+  const span = [...document.querySelectorAll("span")]
+    .find(e => e.innerText?.toLowerCase() === "post");
 
-if (span) {
-  console.log("✅ Dapat elemen span POST:", span);
+  if (span) {
+    console.log("✅ Dapat elemen span POST:", span);
 
-  // cari parent terdekat yang bisa di-klik
-  let el = span.closest("div[role=button], div[data-mcomponent], div[tabindex]");
-  if (!el) el = span.parentElement;
+    // cari parent yang bisa diklik
+    let el = span.closest("div[role=button], div[data-mcomponent], div[tabindex]");
+    if (!el) el = span.parentElement;
 
-  console.log("Target klik:", el);
+    console.log("Target klik:", el);
 
-  // Trigger event seperti klik nyata agar React/Vue terpicu
-  ["mousedown","mouseup","click"].forEach(type => {
-    el.dispatchEvent(new MouseEvent(type, { bubbles:true, cancelable:true, view:window }));
-  });
+    // trigger klik
+    ["mousedown","mouseup","click"].forEach(type => {
+      el.dispatchEvent(new MouseEvent(type, { bubbles:true, cancelable:true, view:window }));
+    });
 
-  ["touchstart","touchend"].forEach(type => {
-    el.dispatchEvent(new TouchEvent(type, { bubbles:true, cancelable:true }));
-  });
+    ["touchstart","touchend"].forEach(type => {
+      el.dispatchEvent(new TouchEvent(type, { bubbles:true, cancelable:true }));
+    });
 
-  console.log("✅ Event dikirim ke elemen POST");
-} else {
-  console.log("❌ Tidak ketemu tombol POST");
+    console.log("✅ Event dikirim ke elemen POST");
+  } else {
+    console.log("❌ Tidak ketemu tombol POST");
+  }
+});
+await browser close();
 }
-
-
-  await browser.close();
-})();
