@@ -26,39 +26,35 @@ const fs = require('fs');
   // Buka grup Facebook
   await page.goto(groupUrl, { waitUntil: 'networkidle2' });
 
-  // 2. Tunggu sampai "Write something..." muncul
-  await page.waitForSelector("span", { timeout: 15000 });
+  // Klik tombol "Write something..." dulu
+await page.evaluate(() => {
+  const span = [...document.querySelectorAll("span")]
+    .find(e => e.innerText?.toLowerCase().includes("write something"));
 
-  // 3. Cari elemen composer (pakai evaluate di browser context)
-  await page.evaluate(() => {
-    const span = [...document.querySelectorAll("span")]
-      .find(e => e.innerText?.toLowerCase().includes("write something")
-              || e.innerText?.toLowerCase().includes("tulis sesuatu"));
+  if (span) {
+    console.log("✅ Dapat elemen span Write something:", span);
 
-    if (!span) {
-      console.log("❌ Tidak ketemu tombol composer");
-      return;
-    }
+    // cari parent terdekat yang bisa di-klik
+    let el = span.closest("div[role=button], div[data-mcomponent], div[tabindex]");
+    if (!el) el = span.parentElement;
 
-    let el = span.closest("div[data-mcomponent='TextArea']")
-             || span.closest("div[role='textbox']")
-             || span.parentElement;
-
-    if (!el) {
-      console.log("❌ Tidak ketemu elemen klik");
-      return;
-    }
-
+    // Coba berbagai event supaya React terpicu
     ["mousedown","mouseup","click"].forEach(type => {
       el.dispatchEvent(new MouseEvent(type, { bubbles:true, cancelable:true, view:window }));
     });
 
-    console.log("✅ Composer dibuka aman 👍");
-  });
+    ["touchstart","touchend"].forEach(type => {
+      el.dispatchEvent(new TouchEvent(type, { bubbles:true, cancelable:true }));
+    });
+  }
+});
 
-  // 4. Tunggu textbox aktif (role="textbox" muncul)
-  await page.waitForSelector("div[role='textbox']", { timeout: 10000 });
 
+  // Tunggu sampai textbox muncul setelah klik "Write something..."
+const textBox = await page.waitForSelector(
+  "div[role='textbox'], textarea[name='xc_message'], div[contenteditable='true']",
+  { timeout: 10000 }
+);
   // 5. Isi caption
   await page.type("div[role='textbox']", caption);
 
