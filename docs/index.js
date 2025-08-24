@@ -39,70 +39,41 @@ const fs = require('fs');
   // Buka grup
   await page.goto(groupUrl, { waitUntil: 'networkidle2' });
 
-  // klik "Write something"
-
-await page.evaluate((caption) => {
   // cari tombol "Write something" / "Buat postingan"
-  const btn = [...document.querySelectorAll("div[role='button']")]
-    .find(el => el.innerText?.toLowerCase().includes("write something")
-             || el.innerText?.toLowerCase().includes("buat postingan"));
-  
-  if (btn) {
-    ["mousedown","mouseup","click"].forEach(type => {
-      btn.dispatchEvent(new MouseEvent(type, { bubbles:true, cancelable:true, view:window }));
-    });
+const btn = await page.$x(
+  "//div[contains(., 'Write something') or contains(., 'Write a public post') or contains(., 'Buat postingan')]"
+);
 
-    // tunggu sebentar supaya composer muncul
-    setTimeout(() => {
-      const tb = document.querySelector("textarea[name='xc_message'], textarea");
-      if (tb) {
-        tb.focus();
-        tb.value = caption;
-        tb.dispatchEvent(new Event("input", { bubbles:true }));
-        tb.dispatchEvent(new Event("change", { bubbles:true }));
-        console.log("✅ Caption berhasil diisi:", tb.value);
-      } else {
-        console.log("❌ Textarea masih tidak muncul");
-      }
-    }, 3000);
-  } else {
-    console.log("❌ Tombol 'Write something' tidak ditemukan");
-  }
-}, caption); // caption dikirim dari Node.js ke page context
+if (btn.length > 0) {
+  await btn[0].click();
+  console.log("✅ Tombol Write Something diklik");
 
-// kasih delay 3s biar composer sempat render
-await new Promise(resolve => setTimeout(resolve, 3000));
+  // tunggu textarea muncul
+  const textareaSelector = "textarea[name='xc_message'], textarea";
+  await page.waitForSelector(textareaSelector, { timeout: 10000 });
 
+  // isi caption
+  await page.$eval(textareaSelector, (el, caption) => {
+    el.value = caption;
+    el.dispatchEvent(new Event("input", { bubbles: true }));
+    el.dispatchEvent(new Event("change", { bubbles: true }));
+  }, caption);
+  console.log("✅ Caption berhasil diisi:", caption);
 
-  // Klik tombol Post / Kirim
-  // Cari tombol POST berdasarkan teks
-await page.evaluate(() => {
-  // cari span dengan teks "Post"
-  const span = [...document.querySelectorAll("span")]
-    .find(e => e.innerText?.toLowerCase() === "post");
-
+  // cari tombol Post
+  const postSpanXPath = "//span[text()='Post' or text()='Bagikan']";
+  const [span] = await page.$x(postSpanXPath);
   if (span) {
-    console.log("✅ Dapat elemen span POST:", span);
-
-    // cari parent yang bisa diklik
-    let el = span.closest("div[role=button], div[data-mcomponent], div[tabindex]");
-    if (!el) el = span.parentElement;
-
-    console.log("Target klik:", el);
-
-    // trigger klik
-    ["mousedown","mouseup","click"].forEach(type => {
-      el.dispatchEvent(new MouseEvent(type, { bubbles:true, cancelable:true, view:window }));
-    });
-
-    ["touchstart","touchend"].forEach(type => {
-      el.dispatchEvent(new TouchEvent(type, { bubbles:true, cancelable:true }));
-    });
-
-    console.log("✅ Event dikirim ke elemen POST");
+    let clickable = await span.evaluateHandle(el =>
+      el.closest("div[role=button], div[data-mcomponent], div[tabindex]") || el.parentElement
+    );
+    await clickable.asElement().click();
+    console.log("✅ Tombol POST diklik");
   } else {
     console.log("❌ Tidak ketemu tombol POST");
   }
-});
+} else {
+  console.log("❌ Tombol 'Write something' tidak ditemukan");
+}
 await browser close();
 }
