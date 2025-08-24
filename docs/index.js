@@ -75,5 +75,5 @@ if (btn.length > 0) {
 } else {
   console.log("❌ Tombol 'Write something' tidak ditemukan");
 }
-await browser close();
-}
+await browser.close();
+})();
