@@ -4,7 +4,7 @@ const fs = require('fs');
 (async () => {
   const cookies = JSON.parse(fs.readFileSync(__dirname + '/cookies.json', 'utf8'));
 
-  const groupUrl = 'https://m.facebook.com/groups/1612669432331653/';
+  const groupUrl = 'https://facebook.com/groups/512223333438818/';
   const caption = 'Halo, ini posting otomatis dari Puppeteer versi mobile!';
 
   const browser = await puppeteer.launch({
