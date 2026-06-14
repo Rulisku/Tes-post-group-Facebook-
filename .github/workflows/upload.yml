@@ -25,7 +25,6 @@ jobs:
         echo "Memulai download untuk Job ID: ${{ github.event.inputs.jobId }}"
         curl -L -o video.mp4 "https://ferdyankuya-ytshortsku-long.hf.space/api/download-result/${{ github.event.inputs.jobId }}"
         
-        # Cek apakah file benar-benar terunduh dan bukan file kosong/eror
         if [ ! -s video.mp4 ]; then
           echo "Eror: File video kosong atau gagal didownload!"
           exit 1
@@ -40,18 +39,20 @@ jobs:
         tar -xvf youtubeuploader_1.25.5_Linux_amd64.tar.gz youtubeuploader
         chmod +x youtubeuploader
 
-    # 4. Eksekusi Kirim ke YouTube (Menggunakan Kunci Rahasia / Secrets)
+    # 4. Eksekusi Kirim ke YouTube dengan Menyiapkan Folder Konfigurasi Sesuai Log Eror
     - name: Upload to YouTube
       env:
         YT_SECRETS: ${{ secrets.YOUTUBE_OAUTH_SECRETS }}
       run: |
-        # Membuat file token oauth secara instan di server dari GitHub Secrets kamu
-        echo "$YT_SECRETS" > request.token
+        # 1. Membuat folder konfigurasi yang diminta oleh log eror secara mutlak
+        mkdir -p /home/runner/.config/youtubeuploader/
         
-        # Jalankan perintah upload otomatis dengan parameter yang didukung oleh versi baru
+        # 2. Memasukkan isi Kunci Rahasia ke lokasi tepat yang diminta oleh aplikasi
+        echo "$YT_SECRETS" > /home/runner/.config/youtubeuploader/client_secrets.json
+        
+        # 3. Jalankan perintah upload otomatis
         ./youtubeuploader \
           -filename video.mp4 \
           -title "${{ github.event.inputs.videoTitle }}" \
           -categoryId "22" \
           -privacy "public"
-          
