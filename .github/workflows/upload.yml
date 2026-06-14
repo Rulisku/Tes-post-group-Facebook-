@@ -1,0 +1,58 @@
+name: Download from HF and Upload to YouTube
+
+on:
+  workflow_dispatch:
+    inputs:
+      jobId:
+        description: 'ID Job dari Hugging Face'
+        required: true
+      videoTitle:
+        description: 'Judul Video Shorts'
+        required: true
+
+jobs:
+  process-video:
+    runs-on: ubuntu-latest
+
+    steps:
+    # 1. Setup Python di Server GitHub
+    - name: Checkout Repository
+      uses: actions/checkout@v4
+
+    # 2. Download File Video dari Hugging Face Menggunakan Server GitHub yang Kencang
+    - name: Download Video from Hugging Face
+      run: |
+        echo "Memulai download untuk Job ID: ${{ github.event.inputs.jobId }}"
+        curl -L -o video.mp4 "https://ferdyankuya-ytshortsku-long.hf.space/api/download-result/${{ github.event.inputs.jobId }}"
+        
+        # Cek apakah file benar-benar terunduh dan bukan file kosong/eror
+        if [ ! -s video.mp4 ]; then
+          echo "Eror: File video kosong atau gagal didownload!"
+          exit 1
+        fi
+        echo "Download selesai. Ukuran file:"
+        du -sh video.mp4
+
+    # 3. Proses Upload ke YouTube
+    # Di sini kita menggunakan script Python sederhana / tool pihak ketiga untuk upload.
+    # Untuk otentikasi aman tanpa interaksi manual di server, kita gunakan YouTube Uploader CLI.
+    - name: Setup YouTube Uploader
+      run: |
+        wget https://github.com/porjo/youtubeuploader/releases/download/v2.1.0/youtubeuploader_linux_amd64
+        mv youtubeuploader_linux_amd64 youtubeuploader
+        chmod +x youtubeuploader
+
+    # 4. Eksekusi Kirim ke YouTube (Menggunakan Kunci Rahasia / Secrets)
+    - name: Upload to YouTube
+      env:
+        YT_SECRETS: ${{ secrets.YOUTUBE_OAUTH_SECRETS }}
+      run: |
+        # Membuat file token oauth secara instan di server dari GitHub Secrets kamu
+        echo "$YT_SECRETS" > request.token
+        
+        # Jalankan perintah upload otomatis
+        ./youtubeuploader \
+          -filename video.mp4 \
+          -title "${{ github.event.inputs.videoTitle }}" \
+          -category "People & Blogs" \
+          -privacy "public"
