@@ -15,11 +15,11 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
-    # 1. Setup Python di Server GitHub
+    # 1. Ambil data repository
     - name: Checkout Repository
       uses: actions/checkout@v4
 
-    # 2. Download File Video dari Hugging Face Menggunakan Server GitHub yang Kencang
+    # 2. Download File Video dari Hugging Face ke Server GitHub
     - name: Download Video from Hugging Face
       run: |
         echo "Memulai download untuk Job ID: ${{ github.event.inputs.jobId }}"
@@ -33,16 +33,11 @@ jobs:
         echo "Download selesai. Ukuran file:"
         du -sh video.mp4
 
-    # 3. Download Tool Uploader Versi Terbaru v1.25.5 & Ekstrak Isinya
+    # 3. Download Tool Uploader Versi v1.25.5 & Ekstrak Isinya
     - name: Download YouTube Uploader
       run: |
-        # Mengunduh paket arsip terbaru
         wget https://github.com/porjo/youtubeuploader/releases/download/v1.25.5/youtubeuploader_1.25.5_Linux_amd64.tar.gz
-        
-        # Mengekstrak file biner youtubeuploader dari dalam arsip tar.gz
         tar -xvf youtubeuploader_1.25.5_Linux_amd64.tar.gz youtubeuploader
-        
-        # Berikan hak akses eksekusi pada file hasil ekstrak
         chmod +x youtubeuploader
 
     # 4. Eksekusi Kirim ke YouTube (Menggunakan Kunci Rahasia / Secrets)
@@ -53,10 +48,10 @@ jobs:
         # Membuat file token oauth secara instan di server dari GitHub Secrets kamu
         echo "$YT_SECRETS" > request.token
         
-        # Jalankan perintah upload otomatis
+        # Jalankan perintah upload otomatis dengan parameter yang didukung oleh versi baru
         ./youtubeuploader \
           -filename video.mp4 \
           -title "${{ github.event.inputs.videoTitle }}" \
-          -category "People & Blogs" \
+          -categoryId "22" \
           -privacy "public"
           
