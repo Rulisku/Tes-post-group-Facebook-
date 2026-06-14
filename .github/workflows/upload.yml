@@ -33,13 +33,10 @@ jobs:
         echo "Download selesai. Ukuran file:"
         du -sh video.mp4
 
-    # 3. Proses Upload ke YouTube
-    # Di sini kita menggunakan script Python sederhana / tool pihak ketiga untuk upload.
-    # Untuk otentikasi aman tanpa interaksi manual di server, kita gunakan YouTube Uploader CLI.
-    - name: Setup YouTube Uploader
+    # 3. Proses Download Tool Uploader & Rename otomatis agar pas dengan perintah di bawah
+    - name: Download YouTube Uploader
       run: |
-        wget https://github.com/porjo/youtubeuploader/releases/download/v2.1.0/youtubeuploader_linux_amd64
-        mv youtubeuploader_linux_amd64 youtubeuploader
+        wget https://github.com/porjo/youtubeuploader/releases/download/v2.2.0/youtubeuploader_linux_amd64 -O youtubeuploader
         chmod +x youtubeuploader
 
     # 4. Eksekusi Kirim ke YouTube (Menggunakan Kunci Rahasia / Secrets)
@@ -48,7 +45,7 @@ jobs:
         YT_SECRETS: ${{ secrets.YOUTUBE_OAUTH_SECRETS }}
       run: |
         # Membuat file token oauth secara instan di server dari GitHub Secrets kamu
-        echo "$YT_SECRETS" > request.token
+        echo "$YT_SECRETS" > client_secrets.json
         
         # Jalankan perintah upload otomatis
         ./youtubeuploader \
