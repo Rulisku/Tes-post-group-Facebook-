@@ -39,8 +39,8 @@ jobs:
         tar -xvf youtubeuploader_1.25.5_Linux_amd64.tar.gz youtubeuploader
         chmod +x youtubeuploader
 
-    # 4. Eksekusi Kirim ke YouTube dengan Menyiapkan Folder Konfigurasi Sesuai Log Eror
-     - name: Upload to YouTube
+    # 4. Eksekusi Kirim ke YouTube (Spasi di bawah ini sudah diluruskan)
+    - name: Upload to YouTube
       env:
         YT_SECRETS: ${{ secrets.YOUTUBE_OAUTH_SECRETS }}
       run: |
@@ -60,3 +60,4 @@ jobs:
           -title "${{ github.event.inputs.videoTitle }}" \
           -categoryId "22" \
           -privacy "public"
+          
