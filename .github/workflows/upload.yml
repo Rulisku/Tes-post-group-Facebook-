@@ -4,10 +4,10 @@ on:
   workflow_dispatch:
     inputs:
       jobId:
-        description: 'ID Job dari Hugging Face'
+        description: "ID Job dari Hugging Face"
         required: true
       videoTitle:
-        description: 'Judul Video Shorts'
+        description: "Judul Video"
         required: true
 
 jobs:
@@ -15,46 +15,39 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
-    # 1. Ambil data repository
-    - name: Checkout Repository
-      uses: actions/checkout@v4
+      - name: Checkout Repository
+        uses: actions/checkout@v4
 
-    # 2. Download File Video dari Hugging Face ke Server GitHub
-    - name: Download Video from Hugging Face
-      run: |
-        echo "Memulai download untuk Job ID: ${{ github.event.inputs.jobId }}"
-        curl -L -o video.mp4 "https://ferdyankuya-ytshortsku-long.hf.space/api/download-result/${{ github.event.inputs.jobId }}"
-        
-        if [ ! -s video.mp4 ]; then
-          echo "Eror: File video kosong atau gagal didownload!"
-          exit 1
-        fi
-        echo "Download selesai. Ukuran file:"
-        du -sh video.mp4
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
 
-    # 3. Download Tool Uploader Versi v1.25.5 & Ekstrak Isinya
-    - name: Download YouTube Uploader
-      run: |
-        wget https://github.com/porjo/youtubeuploader/releases/download/v1.25.5/youtubeuploader_1.25.5_Linux_amd64.tar.gz
-        tar -xvf youtubeuploader_1.25.5_Linux_amd64.tar.gz youtubeuploader
-        chmod +x youtubeuploader
+      - name: Install Dependencies
+        run: |
+          npm install googleapis
 
-    # 4. Eksekusi Kirim ke YouTube dengan Menyuntikkan Kredensial dan Token Jadi
-    - name: Upload to YouTube
-      env:
-        YT_SECRETS: ${{ secrets.YOUTUBE_OAUTH_SECRETS }}
-        YT_TOKEN: ${{ secrets.YOUTUBE_REQUEST_TOKEN }}
-      run: |
-        # 1. Membuat folder konfigurasi rahasia
-        mkdir -p /home/runner/.config/youtubeuploader/
-        
-        # 2. Membuat file client_secrets dan request.token secara instan
-        echo "$YT_SECRETS" > /home/runner/.config/youtubeuploader/client_secrets.json
-        echo "$YT_TOKEN" > /home/runner/.config/youtubeuploader/request.token
-        
-        # 3. Jalankan perintah upload tanpa interaksi browser
-        ./youtubeuploader \
-          -filename video.mp4 \
-          -title "${{ github.event.inputs.videoTitle }}" \
-          -categoryId "22" \
-          -privacy "public"
+      - name: Download Video from Hugging Face
+        run: |
+          echo "Download Job: ${{ github.event.inputs.jobId }}"
+
+          curl -L \
+            -o video.mp4 \
+            "https://ferdyankuya-ytshortsku-long.hf.space/api/download-result/${{ github.event.inputs.jobId }}"
+
+          if [ ! -s video.mp4 ]; then
+            echo "Video kosong atau gagal didownload"
+            exit 1
+          fi
+
+          echo "Ukuran file:"
+          du -sh video.mp4
+
+      - name: Upload to YouTube
+        env:
+          CLIENT_ID: ${{ secrets.YOUTUBE_CLIENT_ID }}
+          CLIENT_SECRET: ${{ secrets.YOUTUBE_CLIENT_SECRET }}
+          REFRESH_TOKEN: ${{ secrets.YOUTUBE_REFRESH_TOKEN }}
+          VIDEO_TITLE: ${{ github.event.inputs.videoTitle }}
+        run: |
+          node upload.js
