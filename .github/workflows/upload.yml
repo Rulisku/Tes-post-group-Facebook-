@@ -40,17 +40,21 @@ jobs:
         chmod +x youtubeuploader
 
     # 4. Eksekusi Kirim ke YouTube dengan Menyiapkan Folder Konfigurasi Sesuai Log Eror
-    - name: Upload to YouTube
+     - name: Upload to YouTube
       env:
         YT_SECRETS: ${{ secrets.YOUTUBE_OAUTH_SECRETS }}
       run: |
-        # 1. Membuat folder konfigurasi yang diminta oleh log eror secara mutlak
+        # 1. Membuat folder konfigurasi secara mutlak
         mkdir -p /home/runner/.config/youtubeuploader/
         
-        # 2. Memasukkan isi Kunci Rahasia ke lokasi tepat yang diminta oleh aplikasi
+        # 2. Memasukkan isi Kunci Rahasia ke direktori target
         echo "$YT_SECRETS" > /home/runner/.config/youtubeuploader/client_secrets.json
         
-        # 3. Jalankan perintah upload otomatis
+        # 3. Fitur Deteksi: Cek apakah file secrets kosong atau berisi
+        echo "=== DEBUG: Memeriksa ukuran file konfigurasi ==="
+        ls -lh /home/runner/.config/youtubeuploader/client_secrets.json
+        
+        # 4. Jalankan perintah upload otomatis
         ./youtubeuploader \
           -filename video.mp4 \
           -title "${{ github.event.inputs.videoTitle }}" \
