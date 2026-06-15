@@ -39,25 +39,22 @@ jobs:
         tar -xvf youtubeuploader_1.25.5_Linux_amd64.tar.gz youtubeuploader
         chmod +x youtubeuploader
 
-    # 4. Eksekusi Kirim ke YouTube (Spasi di bawah ini sudah diluruskan)
+    # 4. Eksekusi Kirim ke YouTube dengan Menyuntikkan Kredensial dan Token Jadi
     - name: Upload to YouTube
       env:
         YT_SECRETS: ${{ secrets.YOUTUBE_OAUTH_SECRETS }}
+        YT_TOKEN: ${{ secrets.YOUTUBE_REQUEST_TOKEN }}
       run: |
-        # 1. Membuat folder konfigurasi secara mutlak
+        # 1. Membuat folder konfigurasi rahasia
         mkdir -p /home/runner/.config/youtubeuploader/
         
-        # 2. Memasukkan isi Kunci Rahasia ke direktori target
+        # 2. Membuat file client_secrets dan request.token secara instan
         echo "$YT_SECRETS" > /home/runner/.config/youtubeuploader/client_secrets.json
+        echo "$YT_TOKEN" > /home/runner/.config/youtubeuploader/request.token
         
-        # 3. Fitur Deteksi: Cek apakah file secrets kosong atau berisi
-        echo "=== DEBUG: Memeriksa ukuran file konfigurasi ==="
-        ls -lh /home/runner/.config/youtubeuploader/client_secrets.json
-        
-        # 4. Jalankan perintah upload otomatis
+        # 3. Jalankan perintah upload tanpa interaksi browser
         ./youtubeuploader \
           -filename video.mp4 \
           -title "${{ github.event.inputs.videoTitle }}" \
           -categoryId "22" \
           -privacy "public"
-          
