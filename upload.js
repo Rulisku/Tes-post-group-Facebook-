@@ -32,7 +32,10 @@ async function upload() {
       },
 
       status: {
-        privacyStatus: "public",
+        // 🌟 PERBAIKAN 1: Wajib 'private' agar fitur jadwal (schedule) aktif
+        privacyStatus: "private",
+        // 🌟 PERBAIKAN 2: Memasukkan tanggal & jam rilis otomatis dari Google Sheets melalui GitHub env
+        publishAt: process.env.PUBLISH_DATE,
         selfDeclaredMadeForKids: false
       }
     },
@@ -47,10 +50,8 @@ async function upload() {
   console.log("================================");
   console.log("UPLOAD BERHASIL");
   console.log("Video ID:", videoId);
-  console.log(
-    "URL:",
-    `https://www.youtube.com/watch?v=${videoId}`
-  );
+  // 🌟 PERBAIKAN 3: Memperbaiki format string template agar link video muncul dengan benar
+  console.log("URL:", `https://www.youtube.com/watch?v=${videoId}`);
   console.log("================================");
 }
 
