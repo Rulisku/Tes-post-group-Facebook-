@@ -15,6 +15,11 @@ on:
         description: "Deskripsi Video"
         required: false
 
+      # 🌟 TAMBAHAN 1: Daftarkan pintu masuk untuk tanggal rilis dari n8n
+      publishDate:
+        description: "Tanggal dan Jam Rilis YouTube"
+        required: true
+
 jobs:
   process-video:
     runs-on: ubuntu-latest
@@ -56,6 +61,8 @@ jobs:
 
           VIDEO_TITLE: ${{ github.event.inputs.videoTitle }}
           VIDEO_DESCRIPTION: ${{ github.event.inputs.videoDescription }}
+          # 🌟 TAMBAHAN 2: Oper data tanggal ke env agar bisa dibaca oleh upload.js
+          PUBLISH_DATE: ${{ github.event.inputs.publishDate }}
 
         run: |
           node upload.js
