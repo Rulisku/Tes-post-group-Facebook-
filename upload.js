@@ -17,17 +17,23 @@ async function upload() {
     auth: oauth2Client
   });
 
+  console.log("Memulai upload video...");
+
   const response = await youtube.videos.insert({
     part: ["snippet", "status"],
 
     requestBody: {
       snippet: {
         title: process.env.VIDEO_TITLE,
-        description: "Uploaded by GitHub Actions"
+        description:
+          process.env.VIDEO_DESCRIPTION ||
+          "Uploaded by GitHub Actions",
+        categoryId: "22"
       },
 
       status: {
-        privacyStatus: "public"
+        privacyStatus: "public",
+        selfDeclaredMadeForKids: false
       }
     },
 
@@ -36,13 +42,20 @@ async function upload() {
     }
   });
 
+  const videoId = response.data.id;
+
+  console.log("================================");
+  console.log("UPLOAD BERHASIL");
+  console.log("Video ID:", videoId);
   console.log(
-    "Upload berhasil:",
-    response.data.id
+    "URL:",
+    `https://www.youtube.com/watch?v=${videoId}`
   );
+  console.log("================================");
 }
 
 upload().catch(err => {
+  console.error("UPLOAD GAGAL");
   console.error(err);
   process.exit(1);
-})
+});
