@@ -6,9 +6,14 @@ on:
       jobId:
         description: "ID Job dari Hugging Face"
         required: true
+
       videoTitle:
         description: "Judul Video"
         required: true
+
+      videoDescription:
+        description: "Deskripsi Video"
+        required: false
 
 jobs:
   process-video:
@@ -48,6 +53,9 @@ jobs:
           CLIENT_ID: ${{ secrets.YOUTUBE_CLIENT_ID }}
           CLIENT_SECRET: ${{ secrets.YOUTUBE_CLIENT_SECRET }}
           REFRESH_TOKEN: ${{ secrets.YOUTUBE_REFRESH_TOKEN }}
+
           VIDEO_TITLE: ${{ github.event.inputs.videoTitle }}
+          VIDEO_DESCRIPTION: ${{ github.event.inputs.videoDescription }}
+
         run: |
           node upload.js
