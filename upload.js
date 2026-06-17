@@ -32,8 +32,18 @@ async function upload() {
     "Uploaded by GitHub Actions"
   );
   const publishAt = clean(process.env.PUBLISH_DATE);
+ const location = clean(process.env.LOCATION);
 
-  const location = clean(process.env.LOCATION);
+const languageMap = {
+  "Indonesia": "id",
+  "USA": "en",
+  "United States": "en",
+  "English": "en",
+  "Jepang": "ja",
+  "Japan": "ja"
+};
+
+const languageCode = languageMap[location] || "id";
   const tagsRaw = clean(process.env.TAGS);
   const aiContent = clean(process.env.AI_CONTENT);
   const audience = clean(process.env.AUDIENCE);
@@ -60,7 +70,7 @@ async function upload() {
         categoryId: "22",
 
         // optional metadata (tidak wajib YouTube)
-        defaultLanguage: location || undefined
+        defaultLanguage: languageCode
       },
 
       status: {
