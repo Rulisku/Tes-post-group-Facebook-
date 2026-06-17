@@ -21,19 +21,19 @@ on:
         required: true
 
       location:
-        required: true
+        required: false
 
       tags:
-        required: true
+        required: false
 
       aiContent:
-        required: true
+        required: false
 
       audience:
-        required: true
+        required: false
 
       ageRestriction:
-        required: true
+        required: false
 
 jobs:
   process-video:
@@ -73,11 +73,15 @@ jobs:
           CLIENT_ID: ${{ secrets.YOUTUBE_CLIENT_ID }}
           CLIENT_SECRET: ${{ secrets.YOUTUBE_CLIENT_SECRET }}
           REFRESH_TOKEN: ${{ secrets.YOUTUBE_REFRESH_TOKEN }}
+         VIDEO_TITLE: ${{ github.event.inputs.videoTitle }}
+         VIDEO_DESCRIPTION: ${{ github.event.inputs.videoDescription }}
+         PUBLISH_DATE: ${{ github.event.inputs.publishDate }}
 
-          VIDEO_TITLE: ${{ github.event.inputs.videoTitle }}
-          VIDEO_DESCRIPTION: ${{ github.event.inputs.videoDescription }}
-          # 🌟 TAMBAHAN 2: Oper data tanggal ke env agar bisa dibaca oleh upload.js
-          PUBLISH_DATE: ${{ github.event.inputs.publishDate }}
-
+         LOCATION: ${{ github.event.inputs.location || '' }}
+         TAGS: ${{ github.event.inputs.tags || '' }}
+         AI_CONTENT: ${{ github.event.inputs.aiContent || '' }}
+         AUDIENCE: ${{ github.event.inputs.audience || '' }}
+        AGE_RESTRICTION: ${{ github.event.inputs.ageRestriction || '' }}
+          
         run: |
           node upload.js
