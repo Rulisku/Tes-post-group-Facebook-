@@ -1,6 +1,13 @@
 const fs = require("fs");
 const { google } = require("googleapis");
 
+function clean(v, fallback = "") {
+  if (v === undefined || v === null || v === "undefined" || v === "null") {
+    return fallback;
+  }
+  return String(v).trim();
+}
+
 async function upload() {
 
   const oauth2Client = new google.auth.OAuth2(
@@ -19,23 +26,49 @@ async function upload() {
 
   console.log("Memulai upload video...");
 
+  const title = clean(process.env.VIDEO_TITLE);
+  const description = clean(
+    process.env.VIDEO_DESCRIPTION,
+    "Uploaded by GitHub Actions"
+  );
+  const publishAt = clean(process.env.PUBLISH_DATE);
+
+  const location = clean(process.env.LOCATION);
+  const tagsRaw = clean(process.env.TAGS);
+  const aiContent = clean(process.env.AI_CONTENT);
+  const audience = clean(process.env.AUDIENCE);
+  const ageRestriction = clean(process.env.AGE_RESTRICTION);
+
+  // 🔥 TAGS handling (aman untuk string / kosong)
+  const tags = tagsRaw
+    ? tagsRaw.split(",").map(t => t.trim()).filter(Boolean)
+    : [];
+
+  // 🔥 BASIC VALIDATION (biar tidak upload sampah kosong)
+  if (!title) {
+    throw new Error("VIDEO_TITLE wajib diisi");
+  }
+
   const response = await youtube.videos.insert({
     part: ["snippet", "status"],
 
     requestBody: {
       snippet: {
-        title: process.env.VIDEO_TITLE,
-        description:
-          process.env.VIDEO_DESCRIPTION ||
-          "Uploaded by GitHub Actions",
-        categoryId: "22"
+        title,
+        description,
+        tags: tags.length ? tags : undefined, // jangan kirim empty array
+        categoryId: "22",
+
+        // optional metadata (tidak wajib YouTube)
+        defaultLanguage: location || undefined
       },
 
       status: {
-        // 🌟 PERBAIKAN 1: Wajib 'private' agar fitur jadwal (schedule) aktif
         privacyStatus: "private",
-        // 🌟 PERBAIKAN 2: Memasukkan tanggal & jam rilis otomatis dari Google Sheets melalui GitHub env
-        publishAt: process.env.PUBLISH_DATE,
+
+        // hanya set schedule kalau ada tanggal valid
+        publishAt: publishAt || undefined,
+
         selfDeclaredMadeForKids: false
       }
     },
@@ -50,13 +83,16 @@ async function upload() {
   console.log("================================");
   console.log("UPLOAD BERHASIL");
   console.log("Video ID:", videoId);
-  // 🌟 PERBAIKAN 3: Memperbaiki format string template agar link video muncul dengan benar
-  console.log("URL:", `https://www.youtube.com/watch?v=${videoId}`);
+  console.log(`URL: https://www.youtube.com/watch?v=${videoId}`);
   console.log("================================");
+
+  // optional debug (hapus kalau sudah stabil)
+  console.log("Metadata:");
+  console.log({ location, aiContent, audience, ageRestriction });
 }
 
 upload().catch(err => {
   console.error("UPLOAD GAGAL");
-  console.error(err);
+  console.error(err?.response?.data || err);
   process.exit(1);
 });
