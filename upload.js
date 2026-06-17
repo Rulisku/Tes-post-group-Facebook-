@@ -60,7 +60,7 @@ const languageCode = languageMap[location] || "id";
   }
 
   const response = await youtube.videos.insert({
-    part: ["snippet", "status"],
+    part: ["snippet", "status", "recordingDetails"],
 
     requestBody: {
       snippet: {
@@ -70,7 +70,7 @@ const languageCode = languageMap[location] || "id";
         categoryId: "22",
 
         // optional metadata (tidak wajib YouTube)
-        defaultLanguage: languageCode
+        
       },
 
       status: {
@@ -79,10 +79,16 @@ const languageCode = languageMap[location] || "id";
         // hanya set schedule kalau ada tanggal valid
         publishAt: publishAt || undefined,
 
-        selfDeclaredMadeForKids: false
+        selfDeclaredMadeForKids:
+        audience.toLowerCase() === "ya" 
       }
     },
 
+    recordingDetails: {
+      locationDescription: location || undefined
+    }
+  },
+                                               
     media: {
       body: fs.createReadStream("video.mp4")
     }
