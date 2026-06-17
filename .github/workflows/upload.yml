@@ -20,6 +20,21 @@ on:
         description: "Tanggal dan Jam Rilis YouTube"
         required: true
 
+      location:
+        required: true
+
+      tags:
+        required: true
+
+      aiContent:
+        required: true
+
+      audience:
+        required: true
+
+      ageRestriction:
+        required: true
+
 jobs:
   process-video:
     runs-on: ubuntu-latest
