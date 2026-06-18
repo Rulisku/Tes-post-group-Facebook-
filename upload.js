@@ -29,7 +29,17 @@ async function upload() {
     version: "v3",
     auth: oauth2Client
   });
+  
+  const me = await youtube.channels.list({
+  part: ["snippet"],
+  mine: true
+});
 
+console.log(
+  "Upload ke channel:",
+  me.data.items[0].snippet.title
+);
+    
   console.log("Memulai upload video...");
 
   const title = clean(process.env.VIDEO_TITLE);
