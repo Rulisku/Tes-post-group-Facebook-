@@ -42,7 +42,7 @@ async function upload() {
   const publishAt = clean(process.env.PUBLISH_DATE);
 
   const location = clean(process.env.LOCATION);
-
+  console.log("LOCATION:", location);
   const languageMap = {
     Indonesia: "id",
     USA: "en",
