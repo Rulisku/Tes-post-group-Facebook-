@@ -79,53 +79,56 @@ async function upload() {
   }
 
   const response = await youtube.videos.insert({
-    part: [
-      "snippet",
-      "status",
-      "recordingDetails"
-    ],
+  part: [
+    "snippet",
+    "status",
+    "recordingDetails"
+  ],
 
-    requestBody: {
+  requestBody: {
+    snippet: {
+      title,
+      description,
 
-      snippet: {
-        title,
-        description,
-        tags:
-          tags.length > 0
-            ? tags
-            : undefined,
+      tags:
+        tags.length > 0
+          ? tags
+          : undefined,
 
-        categoryId: "22",
+      categoryId: "22",
 
-        defaultLanguage:
-          languageCode
-      },
+      defaultLanguage:
+        languageCode
+    },
 
-      status: {
-        privacyStatus: "private",
+    status: {
+      privacyStatus: "private",
 
-        publishAt:
-          publishAt || undefined,
+      publishAt:
+        publishAt || undefined,
 
-        selfDeclaredMadeForKids:
-          String(audience)
-            .toLowerCase() === "ya"
-      },
+      selfDeclaredMadeForKids:
+        String(audience)
+          .toLowerCase() === "ya"
+    },
 
-      recordingDetails: {
-      locationDescription: location || undefined,
+    recordingDetails: {
+      locationDescription:
+        location || undefined,
+
       location: {
-      latitude: -6.2088,
-      longitude: 106.8456
+        latitude: -6.2088,
+        longitude: 106.8456
       }
-     },
-
-    media: {
-      body: fs.createReadStream(
-        "video.mp4"
-      )
     }
-  });
+  },
+
+  media: {
+    body: fs.createReadStream(
+      "video.mp4"
+    )
+  }
+});
 
   const videoId = response.data.id;
 
