@@ -113,10 +113,12 @@ async function upload() {
       },
 
       recordingDetails: {
-        locationDescription:
-          location || undefined
-      }
-    },
+  locationDescription: location || undefined,
+  location: {
+    latitude: -6.2088,
+    longitude: 106.8456
+  }
+},
 
     media: {
       body: fs.createReadStream(
