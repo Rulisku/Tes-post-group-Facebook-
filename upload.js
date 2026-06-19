@@ -110,6 +110,9 @@ async function upload() {
 const language =
   languageMap[location] || "en";
 
+console.log("LOCATION:", location);
+console.log("LANGUAGE:", language);
+
   const tagsRaw = clean(
     process.env.TAGS
   );
