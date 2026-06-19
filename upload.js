@@ -14,6 +14,44 @@ function clean(v, fallback = "") {
   return String(v).trim();
 }
 
+// Cari koordinat otomatis dari nama lokasi
+async function getCoordinates(place) {
+
+  if (!place) return null;
+
+  try {
+
+    const url =
+      `https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(place)}&limit=1`;
+
+    const response = await fetch(url, {
+      headers: {
+        "User-Agent": "github-actions-youtube-uploader"
+      }
+    });
+
+    const data = await response.json();
+
+    if (!data.length) {
+      console.log("Lokasi tidak ditemukan:", place);
+      return null;
+    }
+
+    return {
+      latitude: parseFloat(data[0].lat),
+      longitude: parseFloat(data[0].lon),
+      description: data[0].display_name
+    };
+
+  } catch (err) {
+
+    console.log("Gagal mencari koordinat");
+    console.log(err);
+
+    return null;
+  }
+}
+
 async function upload() {
 
   const oauth2Client = new google.auth.OAuth2(
@@ -29,37 +67,46 @@ async function upload() {
     version: "v3",
     auth: oauth2Client
   });
-  
-   console.log("Memulai upload video...");
 
-  const title = clean(process.env.VIDEO_TITLE);
+  // Cek channel aktif
+  const me = await youtube.channels.list({
+    part: ["snippet"],
+    mine: true
+  });
+
+  console.log(
+    "Upload ke channel:",
+    me.data.items[0].snippet.title
+  );
+
+  const title = clean(
+    process.env.VIDEO_TITLE
+  );
 
   const description = clean(
     process.env.VIDEO_DESCRIPTION,
     "Uploaded by GitHub Actions"
   );
 
-  const publishAt = clean(process.env.PUBLISH_DATE);
+  const publishAt = clean(
+    process.env.PUBLISH_DATE
+  );
 
-  const location = clean(process.env.LOCATION);
-  console.log("LOCATION:", location);
-  const languageMap = {
-    Indonesia: "id",
-    USA: "en",
-    "United States": "en",
-    English: "en",
-    Jepang: "ja",
-    Japan: "ja"
-  };
+  const location = clean(
+    process.env.LOCATION
+  );
 
-  const languageCode =
-    languageMap[location] || "id";
+  const tagsRaw = clean(
+    process.env.TAGS
+  );
 
-  const tagsRaw = clean(process.env.TAGS);
+  const audience = clean(
+    process.env.AUDIENCE
+  );
 
-  const aiContent = clean(process.env.AI_CONTENT);
-
-  const audience = clean(process.env.AUDIENCE);
+  const aiContent = clean(
+    process.env.AI_CONTENT
+  );
 
   const ageRestriction = clean(
     process.env.AGE_RESTRICTION
@@ -68,86 +115,128 @@ async function upload() {
   const tags = tagsRaw
     ? tagsRaw
         .split(",")
-        .map(t => t.trim())
+        .map(tag => tag.trim())
         .filter(Boolean)
     : [];
 
-  if (!title) {
-    throw new Error(
-      "VIDEO_TITLE wajib diisi"
+  console.log("LOCATION:", location);
+
+  // Cari koordinat otomatis
+  const geo =
+    await getCoordinates(location);
+
+  if (geo) {
+
+    console.log(
+      "Koordinat ditemukan:"
+    );
+
+    console.log(geo);
+
+  } else {
+
+    console.log(
+      "Lokasi tidak dikirim ke YouTube"
     );
   }
 
-  const response = await youtube.videos.insert({
-  part: [
-    "snippet",
-    "status",
-    "recordingDetails"
-  ],
+  const response =
+    await youtube.videos.insert({
 
-  requestBody: {
-    snippet: {
-      title,
-      description,
+      part: [
+        "snippet",
+        "status",
+        "recordingDetails"
+      ],
 
-      tags:
-        tags.length > 0
-          ? tags
-          : undefined,
+      requestBody: {
 
-      categoryId: "22",
+        snippet: {
 
-      defaultLanguage:
-        languageCode
-    },
+          title,
 
-    status: {
-      privacyStatus: "private",
+          description,
 
-      publishAt:
-        publishAt || undefined,
+          categoryId: "22",
 
-      selfDeclaredMadeForKids:
-        String(audience)
-          .toLowerCase() === "ya"
-    },
+          tags:
+            tags.length
+              ? tags
+              : undefined,
 
-    recordingDetails: {
-      locationDescription:
-        location || undefined,
+          defaultLanguage: "id"
+        },
 
-      location: {
-        latitude: -6.2088,
-        longitude: 106.8456
+        status: {
+
+          privacyStatus:
+            publishAt
+              ? "private"
+              : "public",
+
+          publishAt:
+            publishAt || undefined,
+
+          selfDeclaredMadeForKids:
+            audience.toLowerCase() === "ya"
+        },
+
+        recordingDetails:
+
+          geo
+          ? {
+
+              locationDescription:
+                geo.description,
+
+              location: {
+
+                latitude:
+                  geo.latitude,
+
+                longitude:
+                  geo.longitude
+              }
+
+            }
+          : undefined
+      },
+
+      media: {
+
+        body:
+          fs.createReadStream(
+            "video.mp4"
+          )
       }
-    }
-  },
+    });
 
-  media: {
-    body: fs.createReadStream(
-      "video.mp4"
-    )
-  }
-});
-
-  const videoId = response.data.id;
+  const videoId =
+    response.data.id;
 
   console.log(
     "================================"
   );
-  console.log("UPLOAD BERHASIL");
-  console.log("Video ID:", videoId);
+
+  console.log(
+    "UPLOAD BERHASIL"
+  );
+
+  console.log(
+    "Video ID:",
+    videoId
+  );
+
   console.log(
     `URL: https://www.youtube.com/watch?v=${videoId}`
   );
+
   console.log(
     "================================"
   );
 
-  console.log("Metadata:");
   console.log({
     location,
-    languageCode,
     aiContent,
     audience,
     ageRestriction,
@@ -156,7 +245,10 @@ async function upload() {
 }
 
 upload().catch(err => {
-  console.error("UPLOAD GAGAL");
+
+  console.error(
+    "UPLOAD GAGAL"
+  );
 
   console.error(
     err?.response?.data || err
