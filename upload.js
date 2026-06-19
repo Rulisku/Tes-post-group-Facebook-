@@ -211,8 +211,20 @@ async function upload() {
       }
     });
 
-  const videoId =
-    response.data.id;
+  const videoId = response.data.id;
+
+const check = await youtube.videos.list({
+  part: ["recordingDetails"],
+  id: [videoId]
+});
+
+console.log(
+  JSON.stringify(
+    check.data,
+    null,
+    2
+  )
+);
 
   console.log(
     "================================"
