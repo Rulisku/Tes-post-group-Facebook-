@@ -96,6 +96,20 @@ async function upload() {
     process.env.LOCATION
   );
 
+  const languageMap = {
+  "Indonesia": "id",
+  "USA": "en",
+  "United States": "en",
+  "Japan": "ja",
+  "Jepang": "ja",
+  "Korea": "ko",
+  "Germany": "de",
+  "France": "fr"
+};
+
+const language =
+  languageMap[location] || "en";
+
   const tagsRaw = clean(
     process.env.TAGS
   );
@@ -164,7 +178,9 @@ async function upload() {
               ? tags
               : undefined,
 
-          defaultLanguage: "id"
+          defaultLanguage: language,
+
+         defaultAudioLanguage: language
         },
 
         status: {
