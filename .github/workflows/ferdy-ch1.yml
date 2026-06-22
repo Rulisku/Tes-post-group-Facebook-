@@ -1,5 +1,4 @@
-name: Download from HF and Upload to YouTube f044
-
+name: Download from HF and Upload to YouTube Ferdy
 on:
   workflow_dispatch:
     inputs:
