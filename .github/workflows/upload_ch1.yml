@@ -80,6 +80,7 @@ jobs:
           VIDEO_TITLE: ${{ github.event.inputs.videoTitle }}
           VIDEO_DESCRIPTION: ${{ github.event.inputs.videoDescription }}
           PUBLISH_DATE: ${{ github.event.inputs.publishDate }}
+          VIDEO_TIME: ${{ github.event.inputs.videoTime }}
 
           LOCATION: ${{ github.event.inputs.location || '' }}
           TAGS: ${{ github.event.inputs.tags || '' }}
