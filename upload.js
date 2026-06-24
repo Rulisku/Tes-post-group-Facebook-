@@ -220,7 +220,7 @@ console.log("FINAL PUBLISH_AT =", publishAt);
             audience.toLowerCase() === "ya"
         },
 
-       recordingDetails: undefined 
+       recordingDetails:
 
           geo
          ? {
