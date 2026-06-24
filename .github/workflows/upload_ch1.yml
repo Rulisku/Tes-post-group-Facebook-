@@ -20,6 +20,10 @@ on:
         description: "Tanggal dan Jam Rilis YouTube"
         required: true
 
+      videoTime:
+        description: "Jam tayang"
+        required: true
+
       location:
         required: false
 
