@@ -88,9 +88,23 @@ async function upload() {
     "Uploaded by GitHub Actions"
   );
 
-  const publishAt = clean(
+  const publishDate = clean(
   process.env.PUBLISH_DATE
 );
+
+const videoTime = clean(
+  process.env.VIDEO_TIME
+);
+
+let publishAt = "";
+
+if (publishDate && videoTime) {
+
+  const [d, m, y] = publishDate.split("-");
+
+  publishAt =
+    `${y}-${m}-${d}T${videoTime}:00+07:00`;
+}
 
 console.log("PUBLISH_AT RAW =", publishAt);
 console.log("NOW UTC =", new Date().toISOString());
