@@ -89,9 +89,12 @@ async function upload() {
   );
 
   const publishAt = clean(
-    process.env.PUBLISH_DATE
-  );
+  process.env.PUBLISH_DATE
+);
 
+console.log("PUBLISH_AT RAW =", publishAt);
+console.log("NOW UTC =", new Date().toISOString());
+  
   const location = clean(
     process.env.LOCATION
   );
@@ -156,7 +159,8 @@ console.log("LANGUAGE:", language);
       "Lokasi tidak dikirim ke YouTube"
     );
   }
-
+console.log("FINAL PUBLISH_AT =", publishAt);
+  
   const response =
     await youtube.videos.insert({
 
@@ -200,7 +204,7 @@ console.log("LANGUAGE:", language);
             audience.toLowerCase() === "ya"
         },
 
-        recordingDetails:
+        recordingDetails: undefined 
 
           geo
           ? {
