@@ -204,25 +204,26 @@ console.log("FINAL PUBLISH_AT =", publishAt);
             audience.toLowerCase() === "ya"
         },
 
-        recordingDetails: undefined 
+       // recordingDetails: undefined 
 
-          geo
-          ? {
+      //    geo
+        //  ? {
 
-              locationDescription:
-                geo.description,
+          //    locationDescription:
+            //    geo.description,
+//
+           //   location: {
 
-              location: {
+            //    latitude:
+            //      geo.latitude,
 
-                latitude:
-                  geo.latitude,
+            //    longitude:
+          //        geo.longitude
+         //     }
 
-                longitude:
-                  geo.longitude
-              }
-
-            }
-          : undefined
+         //   }
+        //  : undefined
+        recordingDetails: undefined
       },
 
       media: {
