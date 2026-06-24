@@ -91,11 +91,13 @@ async function upload() {
   const publishDate = clean(
   process.env.PUBLISH_DATE
 );
-
+console.log("PUBLISH_DATE =", publishDate);
+  
 const videoTime = clean(
   process.env.VIDEO_TIME
 );
-
+console.log("VIDEO_TIME =", videoTime);
+  
 let publishAt = "";
 
 if (publishDate && videoTime) {
@@ -105,7 +107,7 @@ if (publishDate && videoTime) {
   publishAt =
     `${y}-${m}-${d}T${videoTime}:00+07:00`;
 }
-
+console.log("FINAL PUBLISH_AT =", publishAt);
 console.log("PUBLISH_AT RAW =", publishAt);
 console.log("NOW UTC =", new Date().toISOString());
   
