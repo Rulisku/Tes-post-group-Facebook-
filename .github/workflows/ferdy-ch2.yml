@@ -1,4 +1,5 @@
-name: Download from HF and Upload to YouTube Ferdy
+name: Download from HF and Upload to YouTube
+
 on:
   workflow_dispatch:
     inputs:
@@ -17,6 +18,10 @@ on:
       # 🌟 TAMBAHAN 1: Daftarkan pintu masuk untuk tanggal rilis dari n8n
       publishDate:
         description: "Tanggal dan Jam Rilis YouTube"
+        required: true
+
+      videoTime:
+        description: "Jam tayang"
         required: true
 
       location:
@@ -75,6 +80,7 @@ jobs:
           VIDEO_TITLE: ${{ github.event.inputs.videoTitle }}
           VIDEO_DESCRIPTION: ${{ github.event.inputs.videoDescription }}
           PUBLISH_DATE: ${{ github.event.inputs.publishDate }}
+          VIDEO_TIME: ${{ github.event.inputs.videoTime }}
 
           LOCATION: ${{ github.event.inputs.location || '' }}
           TAGS: ${{ github.event.inputs.tags || '' }}
