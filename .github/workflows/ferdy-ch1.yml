@@ -78,21 +78,22 @@ jobs:
          name: hasil-video
          path: video.mp4
 
-  #    - name: Upload to YouTube
-      #  env:
-        #  CLIENT_ID: ${{ secrets.YOUTUBE_CLIENT_ID_f044_ch1 }}
-        #  CLIENT_SECRET: ${{ secrets.YOUTUBE_CLIENT_SECRET_f044_ch1 }}
-        #  REFRESH_TOKEN: ${{ secrets.YOUTUBE_REFRESH_TOKEN_f044_ch1 }}
-         # VIDEO_TITLE: ${{ github.event.inputs.videoTitle }}
-        #  VIDEO_DESCRIPTION: ${{ github.event.inputs.videoDescription }}
-        #  PUBLISH_DATE: ${{ github.event.inputs.publishDate }}
-       #   VIDEO_TIME: ${{ github.event.inputs.videoTime }}
+      - name: Upload to YouTube
+        env:
+          CLIENT_ID: ${{ secrets.YOUTUBE_CLIENT_ID_f044_ch1 }}
+          CLIENT_SECRET: ${{ secrets.YOUTUBE_CLIENT_SECRET_f044_ch1 }}
+          REFRESH_TOKEN: ${{ secrets.YOUTUBE_REFRESH_TOKEN_f044_ch1 }}
+          VIDEO_TITLE: ${{ github.event.inputs.videoTitle }}
+          VIDEO_DESCRIPTION: ${{ github.event.inputs.videoDescription }}
+          PUBLISH_DATE: ${{ github.event.inputs.publishDate }}
+          VIDEO_TIME: ${{ github.event.inputs.videoTime }}
 
-        #  LOCATION: ${{ github.event.inputs.location || '' }}
-       #   TAGS: ${{ github.event.inputs.tags || '' }}
-        #  AI_CONTENT: ${{ github.event.inputs.aiContent || '' }}
-        #  AUDIENCE: ${{ github.event.inputs.audience || '' }}
-        #  AGE_RESTRICTION: ${{ github.event.inputs.ageRestriction || '' }}
+        #
+          LOCATION: ${{ github.event.inputs.location || '' }}
+          TAGS: ${{ github.event.inputs.tags || '' }}
+          AI_CONTENT: ${{ github.event.inputs.aiContent || '' }}
+          AUDIENCE: ${{ github.event.inputs.audience || '' }}
+          AGE_RESTRICTION: ${{ github.event.inputs.ageRestriction || '' }}
           
-       # run: |
-      #    node upload.js
+        run: |
+          node upload.js
