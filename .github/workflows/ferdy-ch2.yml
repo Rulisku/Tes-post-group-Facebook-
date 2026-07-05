@@ -72,12 +72,6 @@ jobs:
           echo "Ukuran file:"
           du -sh video.mp4
 
-      - name: Upload artifact
-        uses: actions/upload-artifact@v4
-        with:
-         name: hasil-video
-         path: video.mp4
-
       - name: Upload to YouTube
         env:
           CLIENT_ID: ${{ secrets.YOUTUBE_CLIENT_ID_f044_ch2 }}
