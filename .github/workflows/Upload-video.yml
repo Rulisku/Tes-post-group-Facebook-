@@ -42,10 +42,9 @@ jobs:
         run: |
           echo "Memulai pengiriman video ke Telegram..."
           
-          # Mengirim file video.mp4 menggunakan API Telegram resmi (Metode sendVideo)
+          # Perbaikan struktur pemanggilan URL API Telegram menggunakan variabel env yang aman
           curl -v -F "video=@video.mp4" \
-            -F "chat_id=${TELEGRAM_CHAT_ID}" \
-            -F "caption=🚀 Video Baru Selesai Dirender!%0A%0A📌 *Judul:* ${VIDEO_TITLE}" \
+            -F "chat_id=$TELEGRAM_CHAT_ID" \
+            -F "caption=🚀 Video Baru Selesai Dirender!%0A%0A📌 *Judul:* $VIDEO_TITLE" \
             -F "parse_mode=Markdown" \
-            "https://api.telegram.org/bot${TELEGRAM_BOT_TOKEN}/sendVideo"
-            
+            "https://api.telegram.org/bot$TELEGRAM_BOT_TOKEN/sendVideo"
