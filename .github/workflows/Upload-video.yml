@@ -1,4 +1,4 @@
-name: Download from HF and Upload to YouTube
+name: Download from HF and Send to Telegram
 
 on:
   workflow_dispatch:
@@ -6,37 +6,8 @@ on:
       jobId:
         description: "ID Job dari Hugging Face"
         required: true
-
       videoTitle:
-        description: "Judul Video"
-        required: true
-
-      videoDescription:
-        description: "Deskripsi Video"
-        required: true
-
-      # 🌟 TAMBAHAN 1: Daftarkan pintu masuk untuk tanggal rilis dari n8n
-      publishDate:
-        description: "Tanggal dan Jam Rilis YouTube"
-        required: true
-
-      videoTime:
-        description: "Jam tayang"
-        required: true
-
-      location:
-        required: false
-
-      tags:
-        required: false
-
-      aiContent:
-        required: false
-
-      audience:
-        required: false
-
-      ageRestriction:
+        description: "Judul Video (Akan jadi teks caption di Telegram)"
         required: false
 
 jobs:
@@ -46,15 +17,6 @@ jobs:
     steps:
       - name: Checkout Repository
         uses: actions/checkout@v4
-
-      - name: Setup Node.js
-        uses: actions/setup-node@v4
-        with:
-          node-version: 20
-
-      - name: Install Dependencies
-        run: |
-          npm install googleapis
 
       - name: Download Video from Hugging Face
         run: |
@@ -69,25 +31,21 @@ jobs:
             exit 1
           fi
 
-          echo "Ukuran file:"
+          echo "Ukuran file berhasil didownload:"
           du -sh video.mp4
 
-      #- name: Upload to YouTube
-      #  env:
-         # CLIENT_ID: ${{ secrets.YOUTUBE_CLIENT_ID_f044_ch1 }}
-         # CLIENT_SECRET: ${{ secrets.YOUTUBE_CLIENT_SECRET_f044_ch1 }}
-          #REFRESH_TOKEN: ${{ secrets.YOUTUBE_REFRESH_TOKEN_f044_ch1 }}
-        #  VIDEO_TITLE: ${{ github.event.inputs.videoTitle }}
-        #  VIDEO_DESCRIPTION: ${{ github.event.inputs.videoDescription }}
-         # PUBLISH_DATE: ${{ github.event.inputs.publishDate }}
-          #VIDEO_TIME: ${{ github.event.inputs.videoTime }}
-
-        #
-        #  LOCATION: ${{ github.event.inputs.location || '' }}
-       #   TAGS: ${{ github.event.inputs.tags || '' }}
-         # AI_CONTENT: ${{ github.event.inputs.aiContent || '' }}
-         # AUDIENCE: ${{ github.event.inputs.audience || '' }}
-         # AGE_RESTRICTION: ${{ github.event.inputs.ageRestriction || '' }}
-          
+      - name: Send Video to Telegram
+        env:
+          TELEGRAM_BOT_TOKEN: ${{ secrets.TELEGRAM_BOT_TOKEN }}
+          TELEGRAM_CHAT_ID: ${{ secrets.TELEGRAM_CHAT_ID }}
+          VIDEO_TITLE: ${{ github.event.inputs.videoTitle }}
         run: |
-          node upload.js
+          echo "Memulai pengiriman video ke Telegram..."
+          
+          # Mengirim file video.mp4 menggunakan API Telegram resmi (Metode sendVideo)
+          curl -v -F "video=@video.mp4" \
+            -F "chat_id=${TELEGRAM_CHAT_ID}" \
+            -F "caption=🚀 Video Baru Selesai Dirender!%0A%0A📌 *Judul:* ${VIDEO_TITLE}" \
+            -F "parse_mode=Markdown" \
+            "https://api.telegram.org/bot${TELEGRAM_BOT_TOKEN}/sendVideo"
+            
