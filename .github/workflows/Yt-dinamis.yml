@@ -80,7 +80,7 @@ jobs:
           TAGS: ${{ github.event.inputs.tags || '' }}
           AI_CONTENT: ${{ github.event.inputs.aiContent || '' }}
           AUDIENCE: ${{ github.event.inputs.audience || '' }}
-         AGE_RESTRICTION: ${{ github.event.inputs.ageRestriction || '' }}
+          AGE_RESTRICTION: ${{ github.event.inputs.ageRestriction || '' }}
           
         run: |
           node upload.js
