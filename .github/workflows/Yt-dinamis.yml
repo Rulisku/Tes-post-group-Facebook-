@@ -22,6 +22,10 @@ on:
       channelName:
         description: "Nama Target Channel"
         required: true
+      thumbnailId:
+        description: "ID Thumbnail Google Drive (Kosongkan jika Shorts)"
+        required: false
+        default: ""
       location:
         required: false
       tags:
@@ -71,6 +75,7 @@ jobs:
           VIDEO_DESCRIPTION: ${{ github.event.inputs.videoDescription }}
           PUBLISH_DATE: ${{ github.event.inputs.publishDate }}
           VIDEO_TIME: ${{ github.event.inputs.videoTime }}
+          THUMBNAIL_ID: ${{ github.event.inputs.thumbnailId }}
           LOCATION: ${{ github.event.inputs.location || '' }}
           TAGS: ${{ github.event.inputs.tags || '' }}
           AI_CONTENT: ${{ github.event.inputs.aiContent || '' }}
