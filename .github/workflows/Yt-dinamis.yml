@@ -63,24 +63,24 @@ jobs:
             exit 1
           fi
 
-     # - name: Upload to YouTube
-       # env:
+      - name: Upload to YouTube
+        env:
           # 🌟 TRIK DINAMIS: Menyusun nama rahasia secara otomatis berdasarkan input channelName
           # Jika input berisi "Channel1", GitHub akan membaca secrets.YOUTUBE_CLIENT_ID_f044_Channel1
-        #  CLIENT_ID: ${{ secrets[format('YOUTUBE_CLIENT_ID_f044_{0}', github.event.inputs.channelName)] }}
-       #   CLIENT_SECRET: ${{ secrets[format('YOUTUBE_CLIENT_SECRET_f044_{0}', github.event.inputs.channelName)] }}
-         # REFRESH_TOKEN: ${{ secrets[format('YOUTUBE_REFRESH_TOKEN_f044_{0}', github.event.inputs.channelName)] }}
+          CLIENT_ID: ${{ secrets[format('YOUTUBE_CLIENT_ID_f044_{0}', github.event.inputs.channelName)] }}
+          CLIENT_SECRET: ${{ secrets[format('YOUTUBE_CLIENT_SECRET_f044_{0}', github.event.inputs.channelName)] }}
+          REFRESH_TOKEN: ${{ secrets[format('YOUTUBE_REFRESH_TOKEN_f044_{0}', github.event.inputs.channelName)] }}
           
-       #   VIDEO_TITLE: ${{ github.event.inputs.videoTitle }}
-        #  VIDEO_DESCRIPTION: ${{ github.event.inputs.videoDescription }}
-       #   PUBLISH_DATE: ${{ github.event.inputs.publishDate }}
-       #   VIDEO_TIME: ${{ github.event.inputs.videoTime }}
-         # THUMBNAIL_ID: ${{ github.event.inputs.thumbnailId }}
-       #   LOCATION: ${{ github.event.inputs.location || '' }}
-        #  TAGS: ${{ github.event.inputs.tags || '' }}
-        #  AI_CONTENT: ${{ github.event.inputs.aiContent || '' }}
-         # AUDIENCE: ${{ github.event.inputs.audience || '' }}
-       #   AGE_RESTRICTION: ${{ github.event.inputs.ageRestriction || '' }}
+          VIDEO_TITLE: ${{ github.event.inputs.videoTitle }}
+          VIDEO_DESCRIPTION: ${{ github.event.inputs.videoDescription }}
+          PUBLISH_DATE: ${{ github.event.inputs.publishDate }}
+          VIDEO_TIME: ${{ github.event.inputs.videoTime }}
+          THUMBNAIL_ID: ${{ github.event.inputs.thumbnailId }}
+          LOCATION: ${{ github.event.inputs.location || '' }}
+          TAGS: ${{ github.event.inputs.tags || '' }}
+          AI_CONTENT: ${{ github.event.inputs.aiContent || '' }}
+          AUDIENCE: ${{ github.event.inputs.audience || '' }}
+         AGE_RESTRICTION: ${{ github.event.inputs.ageRestriction || '' }}
           
-       # run: |
-         # node upload.js
+        run: |
+          node upload.js
