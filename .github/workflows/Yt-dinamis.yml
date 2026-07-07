@@ -45,6 +45,12 @@ jobs:
       - name: Checkout Repository
         uses: actions/checkout@v4
 
+      - name: Debug Inputs
+        run: |
+         echo "channel_name = '${{ github.event.inputs.channel_name }}'"
+         echo "publishDate = '${{ github.event.inputs.publishDate }}'"
+         echo "videoTime = '${{ github.event.inputs.videoTime }}'"
+
       - name: Setup Node.js
         uses: actions/setup-node@v4
         with:
