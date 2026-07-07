@@ -83,4 +83,4 @@ jobs:
           AGE_RESTRICTION: ${{ github.event.inputs.ageRestriction || '' }}
           
         run: |
-          #node upload.js
+          node upload.js
