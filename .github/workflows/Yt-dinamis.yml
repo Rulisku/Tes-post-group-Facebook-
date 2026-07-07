@@ -73,9 +73,9 @@ jobs:
         env:
           # 🌟 TRIK DINAMIS: Menyusun nama rahasia secara otomatis berdasarkan input channelName
           # Jika input berisi "Channel1", GitHub akan membaca secrets.YOUTUBE_CLIENT_ID_f044_Channel1
-           CLIENT_ID: ${{ secrets[format('YOUTUBE_CLIENT_ID_f044_{0}', github.event.inputs.channelName: )] }}
-           CLIENT_SECRET: ${{ secrets[format('YOUTUBE_CLIENT_SECRET_f044_{0}', github.event.inputs.channelName:)] }}
-           REFRESH_TOKEN: ${{ secrets[format('YOUTUBE_REFRESH_TOKEN_f044_{0}', github.event.inputs.channelName:)] }}
+           CLIENT_ID: ${{ secrets[format('YOUTUBE_CLIENT_ID_f044_{0}', github.event.inputs.channelName)] }}
+           CLIENT_SECRET: ${{ secrets[format('YOUTUBE_CLIENT_SECRET_f044_{0}', github.event.inputs.channelName)] }}
+           REFRESH_TOKEN: ${{ secrets[format('YOUTUBE_REFRESH_TOKEN_f044_{0}', github.event.inputs.channelName)] }}
           
            VIDEO_TITLE: ${{ github.event.inputs.videoTitle }}
            VIDEO_DESCRIPTION: ${{ github.event.inputs.videoDescription }}
