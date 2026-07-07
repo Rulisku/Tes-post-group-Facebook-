@@ -63,7 +63,7 @@ jobs:
       - name: Download Video from Hugging Face
         run: |
           echo "Download Job: ${{ github.event.inputs.jobId }}"
-          curl -L -o video.mp4 "https://ferdyankuya-ytshortsku-long-sendvideo.hf.space/api/download-result/${{ github.event.inputs.jobId }}"
+          curl -L -o video.mp4 "https://ferdyankuya-ytshortsku-long.hf.space/api/download-result/${{ github.event.inputs.jobId }}"
           if [ ! -s video.mp4 ]; then
             echo "Video kosong atau gagal didownload"
             exit 1
