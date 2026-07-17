@@ -1,4 +1,4 @@
-name: AITO POTONG ID DRIVE TO MERGE
+name: AUTO POTONG ID DRIVE TO MERGE
 on:
   workflow_dispatch:
     inputs:
