@@ -19,7 +19,7 @@
         <h1>BOT DASHBOARD PRO 🚀</h1>
         <div class="form-group"><input type="file" id="visualFile" accept="video/*,image/*"></div>
         <div class="form-group"><input type="file" id="audioFile" accept="audio/*"></div>
-        <button class="btn-generate" onclick="startUpload()">🚀 UPLOAD KE CATBOX</button>
+        <button class="btn-generate" onclick="startUpload()">🚀 UPLOAD KE PIXELDRAIN</button>
         <div id="statusBox" class="status-box"></div>
     </div>
 
@@ -32,14 +32,15 @@
         if (!vFile || !aFile) { alert("Pilih file dulu!"); return; }
 
         statusBox.style.display = "block";
-        statusBox.innerHTML = "⏳ Mengupload ke Catbox...";
+        statusBox.innerHTML = "⏳ Mengupload ke Pixeldrain...";
 
         const upload = async (f) => {
             const fd = new FormData();
-            fd.append("fileToUpload", f);
-            fd.append("reqtype", "fileupload");
-            const r = await fetch("https://catbox.moe/user/api.php", {method:"POST", body:fd});
-            return await r.text(); 
+            fd.append("file", f);
+            const r = await fetch("https://pixeldrain.com/api/file", {method:"POST", body:fd});
+            const j = await r.json(); 
+            // Link direct pixeldrain adalah: pixeldrain.com/api/file/ID_FILE
+            return `https://pixeldrain.com/api/file/${j.id}`;
         };
 
         try {
