@@ -19,24 +19,36 @@ jobs:
 
       - name: Render Video
         run: |
-          # Ubah KOMA jadi spasi
+          # Ubah KOMA jadi spasi untuk pengolahan array
           v_list=$(echo "${{ github.event.inputs.video_urls }}" | tr ',' ' ')
           a_list=$(echo "${{ github.event.inputs.audio_urls }}" | tr ',' ' ')
           
           v_links=($v_list)
           a_links=($a_list)
           
-          # Loop untuk membuat potongan video per pasangan
+          # Hapus list.txt jika sudah ada dari percobaan sebelumnya
+          rm -f list.txt
+          
           for i in "${!v_links[@]}"; do
-            wget -q --user-agent="Mozilla/5.0" -O "v_$i.mp4" "${v_links[$i]}"
-            wget -q --user-agent="Mozilla/5.0" -O "a_$i.mp3" "${a_links[$i]}"
+            # Download file
+            wget -q --user-agent="Mozilla/5.0" -O "input_v_$i" "${v_links[$i]}"
+            wget -q --user-agent="Mozilla/5.0" -O "input_a_$i.mp3" "${a_links[$i]}"
             
-            # Gabungkan pasangan v_i dan a_i agar sinkron
-            ffmpeg -y -i "v_$i.mp4" -i "a_$i.mp3" -c:v libx264 -c:a aac -pix_fmt yuv420p -shortest "part_$i.mp4"
+            # Deteksi tipe file visual (Gambar atau Video)
+            if [[ $(file --mime-type -b "input_v_$i") == image/* ]]; then
+              # Jika GAMBAR: Loop gambar, potong mengikuti durasi audio (-shortest)
+              ffmpeg -y -loop 1 -i "input_v_$i" -i "input_a_$i.mp3" -c:v libx264 -tune stillimage -c:a aac -pix_fmt yuv420p -shortest "part_$i.mp4"
+            else
+              # Jika VIDEO: Gabungkan, potong mengikuti durasi terpendek (-shortest)
+              ffmpeg -y -i "input_v_$i" -i "input_a_$i.mp3" -c:v libx264 -c:a aac -pix_fmt yuv420p -shortest "part_$i.mp4"
+            fi
+            
+            # Tambahkan ke daftar concat
             echo "file 'part_$i.mp4'" >> list.txt
           done
 
           # Gabungkan semua potongan menjadi satu file output
+          # Menggunakan -c copy agar proses penggabungan akhir sangat cepat
           ffmpeg -y -f concat -safe 0 -i list.txt -c copy output.mp4
 
       - name: Upload Artifact
