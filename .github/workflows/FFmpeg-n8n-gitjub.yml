@@ -1,0 +1,22 @@
+name: Auto Processor
+on:
+  repository_dispatch:
+    types: [auto_process] # Trigger otomatis dari n8n
+
+jobs:
+  proses:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Download & Process
+        run: |
+          # Ambil link dari payload yang dikirim n8n
+          LINK="${{ github.event.client_payload.link }}"
+          ID=$(echo $LINK | sed -n 's/.*\/d\/\([a-zA-Z0-9_-]\+\).*/\1/p')
+
+          pip install gdown
+          gdown --id $ID -O video.mp4
+
+          # Lakukan FFmpeg di sini
+          ffmpeg -i video.mp4 ... output.mp4
+
+          # (Opsional) Upload hasil balik ke server/drive/Litterbox
