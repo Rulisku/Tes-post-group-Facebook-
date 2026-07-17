@@ -4,10 +4,10 @@ on:
   workflow_dispatch:
     inputs:
       video_url:
-        description: 'URL Visual (Foto atau Video)'
+        description: 'URL Visual (Link Direct .jpg/.mp4)'
         required: true
       audio_url:
-        description: 'URL Audio (MP3/WAV)'
+        description: 'URL Audio (Link Direct .mp3)'
         required: true
 
 jobs:
@@ -21,19 +21,18 @@ jobs:
 
       - name: Render Video
         run: |
-          # Download file
+          # Download file langsung menggunakan link dari Catbox
           wget -O visual_input "${{ github.event.inputs.video_url }}"
           wget -O audio_input "${{ github.event.inputs.audio_url }}"
           
-          # Deteksi apakah visual adalah gambar atau video
-          # Jika gambar, tambahkan filter loop dan durasi
+          # Deteksi tipe file
           file_type=$(file --mime-type -b visual_input)
           
           if [[ $file_type == image/* ]]; then
-            echo "Deteksi: Gambar - Melakukan proses loop..."
+            echo "Deteksi: Gambar - Proses loop..."
             ffmpeg -loop 1 -i visual_input -i audio_input -c:v libx264 -tune stillimage -c:a aac -b:a 192k -pix_fmt yuv420p -shortest -preset ultrafast output.mp4
           else
-            echo "Deteksi: Video - Menggabungkan langsung..."
+            echo "Deteksi: Video - Proses penggabungan..."
             ffmpeg -i visual_input -i audio_input -c:v libx264 -c:a aac -pix_fmt yuv420p -shortest -preset ultrafast output.mp4
           fi
 
