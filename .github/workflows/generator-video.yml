@@ -1,0 +1,29 @@
+name: Render Video Otomatis
+
+on:
+  workflow_dispatch: # Bisa dijalankan manual
+  schedule:
+    - cron: '0 * * * *' # Jalankan otomatis setiap jam
+
+jobs:
+  render:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v3
+
+      - name: Install FFmpeg & Xvfb
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y ffmpeg xvfb
+
+      - name: Render Video
+        run: |
+          # Xvfb menciptakan layar virtual agar FFmpeg tidak error saat rendering
+          xvfb-run ffmpeg -i input.mp4 -vf "scale=1280:720" -c:v libx264 -preset ultrafast output.mp4
+
+      - name: Upload Hasil Video
+        uses: actions/upload-artifact@v3
+        with:
+          name: video-hasil-render
+          path: output.mp4
