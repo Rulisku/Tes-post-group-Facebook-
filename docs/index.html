@@ -31,41 +31,39 @@
         `;
         document.getElementById('container').appendChild(div);
     }
+function uploadLitterbox(btn, resId) {
+    const fileInput = btn.previousElementSibling;
+    if (!fileInput.files[0]) return alert("Pilih file dulu!");
 
-    function uploadLitterbox(btn, resId) {
-        const fileInput = btn.previousElementSibling;
-        if (!fileInput.files[0]) return alert("Pilih file dulu!");
+    btn.innerText = "Mengirim...";
+    btn.disabled = true;
 
-        btn.innerText = "Mengunggah...";
-        btn.disabled = true;
+    const formData = new FormData();
+    formData.append("reqtype", "fileupload");
+    formData.append("time", "12h"); // Sesuai config Anda
+    formData.append("fileToUpload", fileInput.files[0]);
 
-        const formData = new FormData();
-        formData.append("reqtype", "fileupload");
-        formData.append("time", "72h"); // Bisa diubah: 1h, 12h, 24h, 72h
-        formData.append("fileToUpload", fileInput.files[0]);
+    const xhr = new XMLHttpRequest();
+    
+    // Trik optimasi: Matikan cache agar tidak ada proses pembacaan file ganda
+    xhr.open("POST", "https://litterbox.catbox.moe/resources/internals/api.php", true);
 
-        const xhr = new XMLHttpRequest();
-        xhr.open("POST", "https://litterbox.catbox.moe/resources/internals/api.php", true);
-
-        xhr.onload = function() {
-            if (xhr.status === 200) {
-                const link = xhr.responseText.trim();
-                document.getElementById(resId).innerHTML = `Link: <a href="${link}" target="_blank">${link}</a>`;
-                btn.innerText = "Selesai";
-            } else {
-                btn.innerText = "Gagal (Error " + xhr.status + ")";
-                btn.disabled = false;
-            }
-        };
-
-        xhr.onerror = function() {
-            btn.innerText = "Gagal (Network Error)";
+    xhr.onload = function() {
+        if (xhr.status === 200) {
+            const link = xhr.responseText.trim();
+            document.getElementById(resId).innerHTML = `Link: <a href="${link}" target="_blank">${link}</a>`;
+            btn.innerText = "Selesai";
+        } else {
+            btn.innerText = "Gagal (Status " + xhr.status + ")";
             btn.disabled = false;
-        };
+        }
+    };
 
-        xhr.send(formData);
-    }
+    // Kirim data
+    xhr.send(formData);
+}
 
+    
     // Tambah satu baris saat halaman dimuat
     addRow();
 </script>
