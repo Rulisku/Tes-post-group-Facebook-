@@ -32,15 +32,26 @@
         if (!vFile || !aFile) { alert("Pilih file dulu!"); return; }
 
         statusBox.style.display = "block";
-        statusBox.innerHTML = "⏳ Mengupload ke Pixeldrain...";
+        statusBox.innerHTML = "⏳ Mengupload ke Pixeldrain (Tunggu sebentar)...";
 
         const upload = async (f) => {
             const fd = new FormData();
             fd.append("file", f);
-            const r = await fetch("https://pixeldrain.com/api/file", {method:"POST", body:fd});
-            const j = await r.json(); 
-            // Link direct pixeldrain adalah: pixeldrain.com/api/file/ID_FILE
-            return `https://pixeldrain.com/api/file/${j.id}`;
+            
+            // Fetch dengan header standar agar API Pixeldrain merespons dengan benar
+            const r = await fetch("https://pixeldrain.com/api/file", {
+                method: "POST",
+                body: fd
+            });
+            
+            const j = await r.json();
+            
+            // Pixeldrain mengembalikan { "success": true, "id": "xxxxx" }
+            if (j.success === true && j.id) {
+                return `https://pixeldrain.com/api/file/${j.id}`;
+            } else {
+                throw new Error(j.message || "Gagal mendapatkan ID file dari server.");
+            }
         };
 
         try {
@@ -55,10 +66,11 @@
                 <p style="color:#10b981">Sekarang buka tab <strong>Actions</strong> di GitHub, pilih <strong>Render Video Engine</strong>, klik <strong>Run workflow</strong>, dan paste link di atas.</p>
             `;
         } catch (err) {
-            statusBox.innerHTML = "❌ Terjadi kesalahan: " + err.message;
+            statusBox.innerHTML = "❌ <strong>Error:</strong> " + err.message + 
+                                  "<br><br>Jika error berlanjut, pastikan ukuran file tidak melebihi limit harian Pixeldrain.";
+            console.error(err);
         }
     }
     </script>
 </body>
 </html>
-
