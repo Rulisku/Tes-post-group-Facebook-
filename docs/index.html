@@ -1,94 +1,64 @@
 <!DOCTYPE html>
-<html lang="id">
+<html>
 <head>
     <meta charset="UTF-8">
-    <title>Upload Antrean (Litterbox)</title>
+    <title>Upload Stabil</title>
     <style>
         body { background: #0f172a; color: white; font-family: sans-serif; padding: 20px; }
-        .row { background: #334155; padding: 15px; margin-bottom: 20px; border-radius: 8px; }
-        button { background: #3b82f6; color: white; border: none; padding: 10px 15px; cursor: pointer; border-radius: 4px; font-weight: bold; }
-        button:disabled { background: #64748b; cursor: not-allowed; }
-        .result { margin-top: 10px; font-size: 0.9em; word-break: break-all; }
+        .row { background: #334155; padding: 10px; margin-bottom: 10px; border-radius: 6px; }
     </style>
 </head>
 <body>
+    <button onclick="addRow()">+ TAMBAH FILE</button>
+    <div id="container"></div>
 
-<h3>LITTERBOX AUTO-QUEUE UPLOAD</h3>
-<button onclick="addRow()">+ TAMBAH BARIS</button>
-<div id="container"></div>
+    <script>
+        function addRow() {
+            const div = document.createElement('div');
+            div.className = 'row';
+            div.innerHTML = `<input type="file" class="fileInput"> <button onclick="upload(this)">UPLOAD</button><div class="res">Menunggu...</div>`;
+            document.getElementById('container').appendChild(div);
+        }
 
-<script>
-    let uploadQueue = [];
-    let isUploading = false;
+        function upload(btn) {
+            const file = btn.previousElementSibling.files[0];
+            const resDiv = btn.nextElementSibling;
+            if (!file) return;
 
-    function addRow() {
-        const div = document.createElement('div');
-        div.className = 'row';
-        const resId = 'res_' + Date.now();
-        div.innerHTML = `
-            <input type="file" class="fileInput">
-            <button onclick="addToQueue(this, '${resId}')">UPLOAD</button>
-            <div id="${resId}" class="result">Menunggu...</div>
-        `;
-        document.getElementById('container').appendChild(div);
-    }
+            btn.disabled = true;
+            btn.innerText = "Mengunggah...";
 
-    function addToQueue(btn, resId) {
-        const fileInput = btn.previousElementSibling;
-        if (!fileInput.files[0]) return alert("Pilih file dulu!");
+            const fd = new FormData();
+            fd.append("reqtype", "fileupload");
+            fd.append("time", "12h");
+            fd.append("fileToUpload", file);
 
-        // Tambah ke antrean
-        uploadQueue.push({ btn, resId, file: fileInput.files[0] });
-        btn.innerText = "Dalam Antrean...";
-        btn.disabled = true;
+            const xhr = new XMLHttpRequest();
+            xhr.open("POST", "https://litterbox.catbox.moe/resources/internals/api.php", true);
+            
+            // TAMBAHAN: Paksa koneksi ditutup setelah selesai
+            xhr.setRequestHeader("Connection", "close");
 
-        // Panggil pemroses antrean
-        processQueue();
-    }
-
-    function processQueue() {
-        if (isUploading || uploadQueue.length === 0) return;
-
-        isUploading = true;
-        const { btn, resId, file } = uploadQueue.shift();
-
-        btn.innerText = "Mengunggah...";
-
-        const formData = new FormData();
-        formData.append("reqtype", "fileupload");
-        formData.append("time", "12h");
-        formData.append("fileToUpload", file);
-
-        const xhr = new XMLHttpRequest();
-        xhr.open("POST", "https://litterbox.catbox.moe/resources/internals/api.php", true);
-
-        xhr.onload = function() {
-            if (xhr.status === 200) {
-                const url = xhr.responseText.trim();
-                document.getElementById(resId).innerHTML = `Link: <a href="${url}" target="_blank">${url}</a>`;
-                btn.innerText = "Selesai";
-            } else {
-                document.getElementById(resId).innerText = "Gagal (Status " + xhr.status + ")";
-                btn.innerText = "Gagal";
+            xhr.onload = () => {
+                if (xhr.status === 200) {
+                    resDiv.innerHTML = `<a href="${xhr.responseText}" target="_blank">${xhr.responseText}</a>`;
+                    btn.innerText = "Selesai";
+                } else {
+                    resDiv.innerText = "Gagal (Status " + xhr.status + ")";
+                    btn.disabled = false;
+                    btn.innerText = "UPLOAD";
+                }
+            };
+            
+            xhr.onerror = () => {
+                resDiv.innerText = "Error Jaringan";
                 btn.disabled = false;
-            }
-            isUploading = false;
-            processQueue(); // Lanjut ke file berikutnya
-        };
+                btn.innerText = "UPLOAD";
+            };
 
-        xhr.onerror = function() {
-            document.getElementById(resId).innerText = "Error Jaringan";
-            btn.innerText = "Coba Lagi";
-            btn.disabled = false;
-            isUploading = false;
-            processQueue(); // Lanjut ke file berikutnya
-        };
-
-        xhr.send(formData);
-    }
-
-    // Tambah baris pertama otomatis
-    addRow();
-</script>
+            xhr.send(fd);
+        }
+        addRow();
+    </script>
 </body>
 </html>
