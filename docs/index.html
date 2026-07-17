@@ -3,71 +3,77 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>BOT DASHBOARD PRO - GITHUB ACTIONS</title>
+    <title>BOT DASHBOARD PRO - RENDER ENGINE</title>
     <style>
-        /* CSS ASLI DARI SERVER.JS ANDA */
         body { font-family: 'Segoe UI', Tahoma, sans-serif; background: linear-gradient(180deg, #1a102b, #120a1f, #0b0715); color: #fff; min-height: 100vh; margin: 0; padding: 40px 20px; display: flex; flex-direction: column; align-items: center; }
         .container { background: rgba(255, 255, 255, 0.05); backdrop-filter: blur(10px); border: 1px solid rgba(255, 255, 255, 0.1); padding: 30px; border-radius: 16px; width: 100%; max-width: 650px; }
-        h1 { color: #a855f7; margin-bottom: 20px; font-size: 28px; }
-        .file-input-container { background: rgba(255,255,255,0.02); padding: 15px; margin-bottom: 15px; border-radius: 8px; border: 1px dashed rgba(168,85,247,0.3); }
-        .btn-generate { background: #a855f7; color: white; width: 100%; padding: 14px; border: none; border-radius: 8px; font-size: 16px; cursor: pointer; }
-        .status-box { margin-top: 20px; padding: 15px; border-radius: 8px; background: rgba(0,0,0,0.4); border-left: 4px solid #a855f7; display: none; word-break: break-all; }
+        h1 { color: #a855f7; margin-bottom: 20px; font-size: 28px; text-shadow: 0 0 10px rgba(168,85,247,0.5); }
+        .form-group { margin-bottom: 20px; text-align: left; }
+        label { display: block; margin-bottom: 8px; font-weight: bold; color: #cbd5e1; font-size: 14px; }
+        input[type="file"] { width: 100%; padding: 12px; border-radius: 8px; border: 1px solid #4c1d95; background: rgba(15, 23, 42, 0.6); color: #fff; box-sizing: border-box; }
+        .btn-generate { background: #a855f7; color: white; width: 100%; padding: 14px; border: none; border-radius: 8px; font-size: 16px; cursor: pointer; margin-top: 10px; }
+        .status-box { margin-top: 20px; padding: 15px; border-radius: 8px; background: rgba(0,0,0,0.4); border-left: 4px solid #a855f7; display: none; font-family: monospace; font-size: 13px; }
     </style>
 </head>
 <body>
     <div class="container">
         <h1>BOT DASHBOARD PRO 🚀</h1>
-        <div id="fileContainer">
-            <div class="file-input-container">
-                <label>Visual (Foto/Video):</label>
-                <input type="file" id="visualFile" accept="video/*,image/*">
-                <br><br>
-                <label>Suara (Audio):</label>
-                <input type="file" id="audioFile" accept="audio/*">
-            </div>
+        
+        <div class="form-group">
+            <label>Visual (Foto/Video):</label>
+            <input type="file" id="visualFile" accept="video/*,image/*">
         </div>
-        <button class="btn-generate" onclick="startUploadAndGenerate()">🚀 UPLOAD & GENERATE</button>
+
+        <div class="form-group">
+            <label>Suara (Audio):</label>
+            <input type="file" id="audioFile" accept="audio/*">
+        </div>
+
+        <button class="btn-generate" onclick="startUploadAndGenerate()">🚀 UPLOAD & GENERATE VIDEO</button>
         <div id="statusBox" class="status-box"></div>
     </div>
 
     <script>
     async function startUploadAndGenerate() {
         const statusBox = document.getElementById('statusBox');
+        const visualFile = document.getElementById('visualFile').files[0];
+        const audioFile = document.getElementById('audioFile').files[0];
+
+        if (!visualFile || !audioFile) {
+            alert("Harap pilih file terlebih dahulu!");
+            return;
+        }
+
         statusBox.style.display = "block";
-        statusBox.innerHTML = "⏳ Mengunggah ke GoFile...";
+        statusBox.innerHTML = "⏳ Mengunggah file ke GoFile...";
 
         try {
-            // 1. Upload Visual ke GoFile
-            const vData = new FormData();
-            vData.append("file", document.getElementById('visualFile').files[0]);
-            const vRes = await fetch("https://store1.gofile.io/uploadFile", { method: "POST", body: vData });
-            const vJson = await vRes.json();
-            const vUrl = vJson.data.downloadPage;
+            // 1. Upload ke GoFile (Public Upload)
+            const uploadFile = async (file) => {
+                const formData = new FormData();
+                formData.append("file", file);
+                const res = await fetch("https://store1.gofile.io/uploadFile", { method: "POST", body: formData });
+                const json = await res.json();
+                return json.data.downloadPage;
+            };
 
-            // 2. Upload Audio ke GoFile
-            const aData = new FormData();
-            aData.append("file", document.getElementById('audioFile').files[0]);
-            const aRes = await fetch("https://store1.gofile.io/uploadFile", { method: "POST", body: aData });
-            const aJson = await aRes.json();
-            const aUrl = aJson.data.downloadPage;
+            const vUrl = await uploadFile(visualFile);
+            const aUrl = await uploadFile(audioFile);
 
-            statusBox.innerHTML = "✅ Upload selesai! Memicu GitHub Actions...";
+            statusBox.innerHTML = "✅ Upload sukses! Menjalankan Workflow...";
 
-            // 3. Trigger GitHub Action
-            await fetch("https://api.github.com/repos/USERNAME/REPO_NAME/dispatches", {
+            // 2. Trigger GitHub Action
+            // PENTING: Ganti URL di bawah dengan alamat server backend Anda (misal Railway/Render)
+            // Backend ini yang akan memegang TOKEN secara aman di env (secrets)
+            await fetch("https://SERVER-BACKEND-ANDA.up.railway.app/api/trigger", {
                 method: "POST",
-                headers: {
-                    "Authorization": "token GITHUB_PAT_ANDA",
-                    "Accept": "application/vnd.github.v3+json"
-                },
-                body: JSON.stringify({
-                    event_type: "render-video",
-                    client_payload: { video: vUrl, audio: aUrl }
-                })
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({ video: vUrl, audio: aUrl })
             });
 
-            statusBox.innerHTML = "🚀 <strong>Render dimulai!</strong> Cek tab Actions di repositori Anda.";
+            statusBox.innerHTML = "🚀 <strong>Berhasil!</strong> Render sudah masuk antrean. Cek tab 'Actions' di GitHub Anda.";
         } catch (err) {
+            statusBox.style.borderLeftColor = "#ef4444";
             statusBox.innerHTML = "❌ Error: " + err.message;
         }
     }
