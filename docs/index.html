@@ -1,52 +1,33 @@
 <!DOCTYPE html>
-<html lang="en">
+<html>
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>BOT DASHBOARD - RENDER ENGINE</title>
+    <title>UPLOAD GOFILE (FAST)</title>
     <style>
-        body { font-family: sans-serif; background: #0f172a; color: #fff; display: flex; justify-content: center; padding: 50px; }
-        .container { background: #1e293b; padding: 30px; border-radius: 12px; width: 100%; max-width: 500px; text-align: center; }
-        input { margin: 10px 0; width: 100%; padding: 10px; border-radius: 5px; border: none; }
-        button { background: #3b82f6; color: white; padding: 12px; width: 100%; border: none; border-radius: 5px; cursor: pointer; }
-        .status { margin-top: 20px; word-break: break-all; font-size: 14px; text-align: left; }
+        body { font-family: sans-serif; background: #0f172a; color: #fff; padding: 20px; }
+        .box { background: #1e293b; padding: 20px; border-radius: 12px; max-width: 500px; margin: auto; }
+        iframe { width: 100%; height: 100px; background: #000; margin-top: 10px; }
     </style>
 </head>
 <body>
-    <div class="container">
-        <h1>UPLOAD KE TEMP.SH</h1>
-        <input type="file" id="visualFile">
-        <input type="file" id="audioFile">
-        <button onclick="startUpload()">🚀 UPLOAD</button>
-        <div id="statusBox" class="status"></div>
-    </div>
-
-    <script>
-    async function startUpload() {
-        const statusBox = document.getElementById('statusBox');
-        const vFile = document.getElementById('visualFile').files[0];
-        const aFile = document.getElementById('audioFile').files[0];
+    <div class="box">
+        <h3>UPLOAD KE GOFILE (CEPAT)</h3>
         
-        if (!vFile || !aFile) { alert("Pilih file dulu!"); return; }
-        statusBox.innerHTML = "⏳ Mengupload...";
+        <form action="https://store1.gofile.io/uploadFile" method="POST" enctype="multipart/form-data" target="frame1">
+            <input type="file" name="file" required>
+            <button type="submit">UPLOAD VISUAL</button>
+        </form>
+        <iframe name="frame1"></iframe>
 
-        const upload = async (f) => {
-            const fd = new FormData();
-            fd.append("file", f);
-            const r = await fetch("https://temp.sh/upload", { method: "POST", body: fd });
-            const text = await r.text();
-            // temp.sh mengembalikan URL langsung di dalam text respon
-            return text.trim(); 
-        };
+        <br>
+        <form action="https://store1.gofile.io/uploadFile" method="POST" enctype="multipart/form-data" target="frame2">
+            <input type="file" name="file" required>
+            <button type="submit">UPLOAD AUDIO</button>
+        </form>
+        <iframe name="frame2"></iframe>
 
-        try {
-            const vUrl = await upload(vFile);
-            const aUrl = await upload(aFile);
-            statusBox.innerHTML = `<strong>✅ Berhasil!</strong><br><br>Visual: ${vUrl}<br><br>Audio: ${aUrl}`;
-        } catch (err) {
-            statusBox.innerHTML = "❌ Error: " + err.message;
-        }
-    }
-    </script>
+        <p style="font-size: 12px; color: #ccc;">
+            * Setelah upload selesai, link akan muncul di kotak hitam di atas.
+        </p>
+    </div>
 </body>
 </html>
