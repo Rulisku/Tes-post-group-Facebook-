@@ -6,8 +6,8 @@ on:
       video_url:
         description: 'URL Visual (Link Direct .jpg/.mp4)'
         required: true
-      audio_url:
-        description: 'URL Audio (Link Direct .mp3)'
+      audio_urls:
+        description: 'URL Audio (Pisahkan link dengan SPASI)'
         required: true
 
 jobs:
@@ -21,19 +21,31 @@ jobs:
 
       - name: Render Video
         run: |
-          # Download file langsung menggunakan link dari Catbox
-          wget -O visual_input "${{ github.event.inputs.video_url }}"
-          wget -O audio_input "${{ github.event.inputs.audio_url }}"
+          # Download visual
+          wget -q --user-agent="Mozilla/5.0" -O visual_input "${{ github.event.inputs.video_url }}"
           
-          # Deteksi tipe file
+          # Download semua audio dan siapkan list untuk FFmpeg
+          audio_links=(${{ github.event.inputs.audio_urls }})
+          audio_inputs=""
+          filter_complex=""
+          
+          for i in "${!audio_links[@]}"; do
+            wget -q --user-agent="Mozilla/5.0" -O "audio_$i.mp3" "${audio_links[$i]}"
+            audio_inputs="$audio_inputs -i audio_$i.mp3"
+            filter_complex="${filter_complex}[$i:a]"
+          done
+          
+          # Gabungkan semua audio menjadi satu stream
+          num_audios=${#audio_links[@]}
+          filter_complex="${filter_complex}concat=n=${num_audios}:v=0:a=1[outa]"
+          
+          # Proses FFmpeg
           file_type=$(file --mime-type -b visual_input)
           
           if [[ $file_type == image/* ]]; then
-            echo "Deteksi: Gambar - Proses loop..."
-            ffmpeg -loop 1 -i visual_input -i audio_input -c:v libx264 -tune stillimage -c:a aac -b:a 192k -pix_fmt yuv420p -shortest -preset ultrafast output.mp4
+            ffmpeg -y -loop 1 -i visual_input $audio_inputs -filter_complex "$filter_complex" -map 0:v -map "[outa]" -c:v libx264 -tune stillimage -c:a aac -b:a 192k -pix_fmt yuv420p -shortest -preset ultrafast output.mp4
           else
-            echo "Deteksi: Video - Proses penggabungan..."
-            ffmpeg -i visual_input -i audio_input -c:v libx264 -c:a aac -pix_fmt yuv420p -shortest -preset ultrafast output.mp4
+            ffmpeg -y -i visual_input $audio_inputs -filter_complex "$filter_complex" -map 0:v -map "[outa]" -c:v copy -c:a aac -pix_fmt yuv420p -shortest -preset ultrafast output.mp4
           fi
 
       - name: Upload Artifact
@@ -41,3 +53,4 @@ jobs:
         with:
           name: video-hasil
           path: output.mp4
+          
