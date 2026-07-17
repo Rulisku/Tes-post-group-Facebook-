@@ -19,7 +19,7 @@
         <h1>BOT DASHBOARD PRO 🚀</h1>
         <div class="form-group"><input type="file" id="visualFile" accept="video/*,image/*"></div>
         <div class="form-group"><input type="file" id="audioFile" accept="audio/*"></div>
-        <button class="btn-generate" onclick="startUpload()">🚀 UPLOAD KE GOFILE</button>
+        <button class="btn-generate" onclick="startUpload()">🚀 UPLOAD KE CATBOX</button>
         <div id="statusBox" class="status-box"></div>
     </div>
 
@@ -32,27 +32,30 @@
         if (!vFile || !aFile) { alert("Pilih file dulu!"); return; }
 
         statusBox.style.display = "block";
-        statusBox.innerHTML = "⏳ Mengupload ke GoFile...";
+        statusBox.innerHTML = "⏳ Mengupload ke Catbox...";
 
-        const up = async (f) => {
-    const fd = new FormData();
-    fd.append("fileToUpload", f);
-    fd.append("reqtype", "fileupload");
-    const r = await fetch("https://catbox.moe/user/api.php", {method:"POST", body:fd});
-    return await r.text(); // Hasilnya adalah direct link murni
-};
+        const upload = async (f) => {
+            const fd = new FormData();
+            fd.append("fileToUpload", f);
+            fd.append("reqtype", "fileupload");
+            const r = await fetch("https://catbox.moe/user/api.php", {method:"POST", body:fd});
+            return await r.text(); 
+        };
 
+        try {
+            const vUrl = await upload(vFile);
+            const aUrl = await upload(aFile);
 
-        const vUrl = await upload(vFile);
-        const aUrl = await upload(aFile);
-
-        statusBox.innerHTML = `
-            <strong>✅ Upload Berhasil!</strong><br><br>
-            Copy link ini untuk di-paste di GitHub Actions:<br><br>
-            <strong>Visual:</strong> ${vUrl}<br>
-            <strong>Audio:</strong> ${aUrl}<br><br>
-            <p style="color:#10b981">Sekarang buka tab <strong>Actions</strong> di GitHub, pilih <strong>Render Video Engine</strong>, klik <strong>Run workflow</strong>, dan paste link di atas.</p>
-        `;
+            statusBox.innerHTML = `
+                <strong>✅ Upload Berhasil!</strong><br><br>
+                Copy link ini untuk di-paste di GitHub Actions:<br><br>
+                <strong>Visual:</strong> ${vUrl}<br>
+                <strong>Audio:</strong> ${aUrl}<br><br>
+                <p style="color:#10b981">Sekarang buka tab <strong>Actions</strong> di GitHub, pilih <strong>Render Video Engine</strong>, klik <strong>Run workflow</strong>, dan paste link di atas.</p>
+            `;
+        } catch (err) {
+            statusBox.innerHTML = "❌ Terjadi kesalahan: " + err.message;
+        }
     }
     </script>
 </body>
