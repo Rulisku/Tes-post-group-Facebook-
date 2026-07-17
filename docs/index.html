@@ -34,25 +34,25 @@
         statusBox.style.display = "block";
         statusBox.innerHTML = "⏳ Mengupload ke Pixeldrain (Tunggu sebentar)...";
 
-        const upload = async (f) => {
+                const upload = async (f) => {
             const fd = new FormData();
             fd.append("file", f);
             
-            // Fetch dengan header standar agar API Pixeldrain merespons dengan benar
-            const r = await fetch("https://pixeldrain.com/api/file", {
+            // Kita gunakan URL upload utama, bukan /api/file
+            const r = await fetch("https://pixeldrain.com/api/upload", {
                 method: "POST",
                 body: fd
             });
             
             const j = await r.json();
             
-            // Pixeldrain mengembalikan { "success": true, "id": "xxxxx" }
-            if (j.success === true && j.id) {
+            if (j.id) {
                 return `https://pixeldrain.com/api/file/${j.id}`;
             } else {
-                throw new Error(j.message || "Gagal mendapatkan ID file dari server.");
+                throw new Error("Gagal mengupload: " + (j.message || "Autentikasi diperlukan"));
             }
         };
+
 
         try {
             const vUrl = await upload(vFile);
