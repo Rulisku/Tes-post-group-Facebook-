@@ -1,4 +1,5 @@
 name: AUTO POTONG ID DRIVE TO MERGE
+
 on:
   workflow_dispatch:
     inputs:
@@ -13,31 +14,33 @@ jobs:
     steps:
       - name: Setup & Download
         run: |
-          # 1. Update sistem dan install FFmpeg
           sudo apt-get update && sudo apt-get install -y ffmpeg
           pip install gdown
-          mkdir downloads
+          mkdir -p downloads
           
-          # 2. Bersihkan input: ubah koma menjadi spasi agar bisa dibaca loop
+          # Bersihkan input dan proses download
           CLEAN_URLS=$(echo "${{ github.event.inputs.urls }}" | tr ',' ' ')
           
-          # 3. Download setiap link
           count=1
           for url in $CLEAN_URLS; do
             echo "Mengunduh file ke-$count..."
-            # gdown versi terbaru mendukung URL langsung
             gdown "$url" -O "downloads/video_$count.mp4"
             count=$((count + 1))
           done
           
-          # 4. Buat list untuk FFmpeg (concat file)
+          # Cek apakah file benar-benar ada
+          ls -lh downloads/
+          
+          # Buat list untuk FFmpeg dengan path absolut
+          # $(pwd) memastikan path mengarah ke lokasi file yang benar
           for f in downloads/*.mp4; do 
-            echo "file '$f'" >> downloads/list.txt
+            echo "file '$(pwd)/$f'" >> downloads/list.txt
           done
 
       - name: Merge Video
         run: |
-          # 5. Gabungkan tanpa re-encode (-c copy) supaya sangat cepat
+          # 5. Gabungkan tanpa re-encode (-c copy)
+          # -safe 0 diperlukan jika path mengandung karakter khusus
           ffmpeg -f concat -safe 0 -i downloads/list.txt -c copy output.mp4
 
       - name: Upload Artifact
@@ -45,4 +48,3 @@ jobs:
         with:
           name: final-video
           path: output.mp4
-          
