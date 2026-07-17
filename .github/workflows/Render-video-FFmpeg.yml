@@ -3,11 +3,11 @@ name: Render Video Engine
 on:
   workflow_dispatch:
     inputs:
-      video_url:
-        description: 'URL Visual (Link Direct .jpg/.mp4)'
+      video_urls:
+        description: 'URL Visual (Pisahkan dengan KOMA ,)'
         required: true
       audio_urls:
-        description: 'URL Audio (Pisahkan link dengan SPASI)'
+        description: 'URL Audio (Pisahkan dengan KOMA ,)'
         required: true
 
 jobs:
@@ -15,42 +15,32 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - name: Install FFmpeg
-        run: |
-          sudo apt-get update
-          sudo apt-get install -y ffmpeg
+        run: sudo apt-get update && sudo apt-get install -y ffmpeg
 
       - name: Render Video
         run: |
-          # Download visual
-          wget -q --user-agent="Mozilla/5.0" -O visual_input "${{ github.event.inputs.video_url }}"
+          # Ubah KOMA jadi spasi
+          v_list=$(echo "${{ github.event.inputs.video_urls }}" | tr ',' ' ')
+          a_list=$(echo "${{ github.event.inputs.audio_urls }}" | tr ',' ' ')
           
-          # Download semua audio dan siapkan list untuk FFmpeg
-          audio_links=(${{ github.event.inputs.audio_urls }})
-          audio_inputs=""
-          filter_complex=""
+          v_links=($v_list)
+          a_links=($a_list)
           
-          for i in "${!audio_links[@]}"; do
-            wget -q --user-agent="Mozilla/5.0" -O "audio_$i.mp3" "${audio_links[$i]}"
-            audio_inputs="$audio_inputs -i audio_$i.mp3"
-            filter_complex="${filter_complex}[$i:a]"
+          # Loop untuk membuat potongan video per pasangan
+          for i in "${!v_links[@]}"; do
+            wget -q --user-agent="Mozilla/5.0" -O "v_$i.mp4" "${v_links[$i]}"
+            wget -q --user-agent="Mozilla/5.0" -O "a_$i.mp3" "${a_links[$i]}"
+            
+            # Gabungkan pasangan v_i dan a_i agar sinkron
+            ffmpeg -y -i "v_$i.mp4" -i "a_$i.mp3" -c:v libx264 -c:a aac -pix_fmt yuv420p -shortest "part_$i.mp4"
+            echo "file 'part_$i.mp4'" >> list.txt
           done
-          
-          # Gabungkan semua audio menjadi satu stream
-          num_audios=${#audio_links[@]}
-          filter_complex="${filter_complex}concat=n=${num_audios}:v=0:a=1[outa]"
-          
-          # Proses FFmpeg
-          file_type=$(file --mime-type -b visual_input)
-          
-          if [[ $file_type == image/* ]]; then
-            ffmpeg -y -loop 1 -i visual_input $audio_inputs -filter_complex "$filter_complex" -map 0:v -map "[outa]" -c:v libx264 -tune stillimage -c:a aac -b:a 192k -pix_fmt yuv420p -shortest -preset ultrafast output.mp4
-          else
-            ffmpeg -y -i visual_input $audio_inputs -filter_complex "$filter_complex" -map 0:v -map "[outa]" -c:v copy -c:a aac -pix_fmt yuv420p -shortest -preset ultrafast output.mp4
-          fi
+
+          # Gabungkan semua potongan menjadi satu file output
+          ffmpeg -y -f concat -safe 0 -i list.txt -c copy output.mp4
 
       - name: Upload Artifact
         uses: actions/upload-artifact@v4
         with:
           name: video-hasil
           path: output.mp4
-          
