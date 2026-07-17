@@ -1,72 +1,74 @@
 <!DOCTYPE html>
-<html>
+<html lang="id">
 <head>
-    <title>UPLOAD LITTERBOX LENGKAP</title>
+    <meta charset="UTF-8">
+    <title>Uploader & Generator Pro</title>
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <style>
-        body { font-family: sans-serif; background: #0f172a; color: #fff; padding: 20px; }
-        .box { background: #1e293b; padding: 20px; border-radius: 12px; max-width: 600px; margin: auto; }
-        .upload-row { background: #334155; padding: 15px; border-radius: 8px; margin-bottom: 20px; border-left: 5px solid #3b82f6; }
-        button { cursor: pointer; border: none; padding: 10px 15px; border-radius: 4px; font-weight: bold; }
-        .btn-create { background: #3b82f6; color: #fff; width: 100%; margin-bottom: 20px; }
-        .btn-upload { background: #059669; color: #fff; margin-top: 5px; }
-        .btn-delete { background: #ef4444; color: #fff; margin-top: 5px; }
-        label { font-size: 14px; color: #cbd5e1; }
+        body { background: #0f172a; color: #fff; font-family: sans-serif; padding: 20px; }
+        .container { max-width: 600px; margin: auto; background: #1e293b; padding: 20px; border-radius: 12px; }
+        .row { background: #334155; padding: 15px; border-radius: 8px; margin-bottom: 15px; border: 1px solid #475569; }
+        input[type="file"] { width: 100%; margin: 10px 0; }
+        button { padding: 10px; border: none; border-radius: 5px; cursor: pointer; font-weight: bold; width: 100%; }
+        .btn-upload { background: #059669; color: white; margin-top: 5px; }
+        .result-link { margin-top: 10px; font-size: 12px; word-break: break-all; color: #60a5fa; }
+        .btn-add { background: #3b82f6; margin-bottom: 20px; }
     </style>
 </head>
 <body>
-    <div class="box">
-        <h3>UPLOAD LITTERBOX (VISUAL + AUDIO)</h3>
-        <button class="btn-create" onclick="addPair()">+ TAMBAH BARIS UPLOAD BARU</button>
-        
-        <div id="container">
-            <!-- Baris Awal -->
-            <div class="upload-row" id="row1">
-                <form action="https://litterbox.catbox.moe/resources/internals/api.php" method="POST" enctype="multipart/form-data" target="_blank" style="display:inline-block; width: 45%;">
-                    <input type="hidden" name="reqtype" value="fileupload">
-                    <input type="hidden" name="time" value="72h">
-                    <label>Visual (Foto/Video):</label><br>
-                    <input type="file" name="fileToUpload" accept="video/*,image/*" required>
-                    <button type="submit" class="btn-upload">UPLOAD</button>
-                </form>
 
-                <form action="https://litterbox.catbox.moe/resources/internals/api.php" method="POST" enctype="multipart/form-data" target="_blank" style="display:inline-block; width: 45%;">
-                    <input type="hidden" name="reqtype" value="fileupload">
-                    <input type="hidden" name="time" value="72h">
-                    <label>Audio:</label><br>
-                    <input type="file" name="fileToUpload" accept="audio/*" required>
-                    <button type="submit" class="btn-upload">UPLOAD</button>
-                </form>
-                
-                <button class="btn-delete" onclick="this.parentElement.remove()">HAPUS BARIS</button>
-            </div>
-        </div>
-    </div>
+<div class="container">
+    <h3>UPLOAD MULTI-LITTERBOX</h3>
+    <button class="btn-add" onclick="addPair()">+ TAMBAH BARIS</button>
+    <div id="list"></div>
+</div>
 
-    <script>
-        function addPair() {
-            const container = document.getElementById('container');
-            const div = document.createElement('div');
-            div.className = 'upload-row';
-            div.innerHTML = `
-                <form action="https://litterbox.catbox.moe/resources/internals/api.php" method="POST" enctype="multipart/form-data" target="_blank" style="display:inline-block; width: 45%;">
-                    <input type="hidden" name="reqtype" value="fileupload">
-                    <input type="hidden" name="time" value="72h">
-                    <label>Visual:</label><br>
-                    <input type="file" name="fileToUpload" accept="video/*,image/*" required>
-                    <button type="submit" class="btn-upload">UPLOAD</button>
-                </form>
-                <form action="https://litterbox.catbox.moe/resources/internals/api.php" method="POST" enctype="multipart/form-data" target="_blank" style="display:inline-block; width: 45%;">
-                    <input type="hidden" name="reqtype" value="fileupload">
-                    <input type="hidden" name="time" value="72h">
-                    <label>Audio:</label><br>
-                    <input type="file" name="fileToUpload" accept="audio/*" required>
-                    <button type="submit" class="btn-upload">UPLOAD</button>
-                </form>
-                <button class="btn-delete" onclick="this.parentElement.remove()">HAPUS BARIS</button>
-            `;
-            container.appendChild(div);
+<script>
+    function addPair() {
+        const div = document.createElement('div');
+        div.className = 'row';
+        div.innerHTML = `
+            <label>Visual:</label>
+            <input type="file" class="visual-input" accept="video/*,image/*">
+            <label>Audio:</label>
+            <input type="file" class="audio-input" accept="audio/*">
+            <button class="btn-upload" onclick="processUpload(this)">UPLOAD KEDUANYA</button>
+            <div class="result-list"></div>
+        `;
+        document.getElementById('list').appendChild(div);
+    }
+
+    async function processUpload(btn) {
+        const row = btn.parentElement;
+        const vFile = row.querySelector('.visual-input').files[0];
+        const aFile = row.querySelector('.audio-input').files[0];
+        const resDiv = row.querySelector('.result-list');
+
+        if (!vFile || !aFile) { alert("Pilih file dulu!"); return; }
+
+        btn.innerText = "Mengupload...";
+        btn.disabled = true;
+
+        const upload = async (file) => {
+            const fd = new FormData();
+            fd.append('reqtype', 'fileupload');
+            fd.append('time', '72h');
+            fd.append('fileToUpload', file);
+            const r = await fetch("https://litterbox.catbox.moe/resources/internals/api.php", { method: "POST", body: fd });
+            return await r.text();
+        };
+
+        try {
+            const vUrl = await upload(vFile);
+            const aUrl = await upload(aFile);
+            resDiv.innerHTML = `<div class="result-link">Visual: ${vUrl}</div><div class="result-link">Audio: ${aUrl}</div>`;
+            btn.innerText = "BERHASIL!";
+        } catch(e) {
+            btn.innerText = "GAGAL";
         }
-    </script>
+    }
+    
+    addPair(); // Baris pertama otomatis
+</script>
 </body>
 </html>
