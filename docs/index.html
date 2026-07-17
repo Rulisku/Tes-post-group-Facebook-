@@ -3,24 +3,22 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>BOT DASHBOARD PRO - RENDER ENGINE</title>
+    <title>BOT DASHBOARD - RENDER ENGINE</title>
     <style>
-        body { font-family: 'Segoe UI', Tahoma, sans-serif; background: linear-gradient(180deg, #1a102b, #120a1f, #0b0715); color: #fff; min-height: 100vh; margin: 0; padding: 40px 20px; display: flex; flex-direction: column; align-items: center; }
-        .container { background: rgba(255, 255, 255, 0.05); backdrop-filter: blur(10px); border: 1px solid rgba(255, 255, 255, 0.1); padding: 30px; border-radius: 16px; width: 100%; max-width: 650px; }
-        h1 { color: #a855f7; margin-bottom: 20px; font-size: 28px; text-shadow: 0 0 10px rgba(168,85,247,0.5); }
-        .form-group { margin-bottom: 20px; text-align: left; }
-        input[type="file"] { width: 100%; padding: 12px; border-radius: 8px; border: 1px solid #4c1d95; background: rgba(15, 23, 42, 0.6); color: #fff; }
-        .btn-generate { background: #a855f7; color: white; width: 100%; padding: 14px; border: none; border-radius: 8px; font-size: 16px; cursor: pointer; }
-        .status-box { margin-top: 20px; padding: 15px; border-radius: 8px; background: rgba(0,0,0,0.4); border-left: 4px solid #a855f7; display: none; font-size: 14px; }
+        body { font-family: sans-serif; background: #0f172a; color: #fff; display: flex; justify-content: center; padding: 50px; }
+        .container { background: #1e293b; padding: 30px; border-radius: 12px; width: 100%; max-width: 500px; text-align: center; }
+        input { margin: 10px 0; width: 100%; padding: 10px; border-radius: 5px; border: none; }
+        button { background: #3b82f6; color: white; padding: 12px; width: 100%; border: none; border-radius: 5px; cursor: pointer; }
+        .status { margin-top: 20px; word-break: break-all; font-size: 14px; text-align: left; }
     </style>
 </head>
 <body>
     <div class="container">
-        <h1>BOT DASHBOARD PRO 🚀</h1>
-        <div class="form-group"><input type="file" id="visualFile" accept="video/*,image/*"></div>
-        <div class="form-group"><input type="file" id="audioFile" accept="audio/*"></div>
-        <button class="btn-generate" onclick="startUpload()">🚀 UPLOAD KE PIXELDRAIN</button>
-        <div id="statusBox" class="status-box"></div>
+        <h1>UPLOAD KE TEMP.SH</h1>
+        <input type="file" id="visualFile">
+        <input type="file" id="audioFile">
+        <button onclick="startUpload()">🚀 UPLOAD</button>
+        <div id="statusBox" class="status"></div>
     </div>
 
     <script>
@@ -28,47 +26,25 @@
         const statusBox = document.getElementById('statusBox');
         const vFile = document.getElementById('visualFile').files[0];
         const aFile = document.getElementById('audioFile').files[0];
-
+        
         if (!vFile || !aFile) { alert("Pilih file dulu!"); return; }
+        statusBox.innerHTML = "⏳ Mengupload...";
 
-        statusBox.style.display = "block";
-        statusBox.innerHTML = "⏳ Mengupload ke Pixeldrain (Tunggu sebentar)...";
-
-                const upload = async (f) => {
+        const upload = async (f) => {
             const fd = new FormData();
             fd.append("file", f);
-            
-            // Kita gunakan URL upload utama, bukan /api/file
-            const r = await fetch("https://pixeldrain.com/api/upload", {
-                method: "POST",
-                body: fd
-            });
-            
-            const j = await r.json();
-            
-            if (j.id) {
-                return `https://pixeldrain.com/api/file/${j.id}`;
-            } else {
-                throw new Error("Gagal mengupload: " + (j.message || "Autentikasi diperlukan"));
-            }
+            const r = await fetch("https://temp.sh/upload", { method: "POST", body: fd });
+            const text = await r.text();
+            // temp.sh mengembalikan URL langsung di dalam text respon
+            return text.trim(); 
         };
-
 
         try {
             const vUrl = await upload(vFile);
             const aUrl = await upload(aFile);
-
-            statusBox.innerHTML = `
-                <strong>✅ Upload Berhasil!</strong><br><br>
-                Copy link ini untuk di-paste di GitHub Actions:<br><br>
-                <strong>Visual:</strong> ${vUrl}<br>
-                <strong>Audio:</strong> ${aUrl}<br><br>
-                <p style="color:#10b981">Sekarang buka tab <strong>Actions</strong> di GitHub, pilih <strong>Render Video Engine</strong>, klik <strong>Run workflow</strong>, dan paste link di atas.</p>
-            `;
+            statusBox.innerHTML = `<strong>✅ Berhasil!</strong><br><br>Visual: ${vUrl}<br><br>Audio: ${aUrl}`;
         } catch (err) {
-            statusBox.innerHTML = "❌ <strong>Error:</strong> " + err.message + 
-                                  "<br><br>Jika error berlanjut, pastikan ukuran file tidak melebihi limit harian Pixeldrain.";
-            console.error(err);
+            statusBox.innerHTML = "❌ Error: " + err.message;
         }
     }
     </script>
