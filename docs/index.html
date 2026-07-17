@@ -1,45 +1,72 @@
 <!DOCTYPE html>
 <html>
 <head>
-    <title>UPLOAD CEPAT LITTERBOX</title>
+    <title>UPLOAD LITTERBOX LENGKAP</title>
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <style>
         body { font-family: sans-serif; background: #0f172a; color: #fff; padding: 20px; }
-        .box { background: #1e293b; padding: 20px; border-radius: 12px; max-width: 500px; margin: auto; }
-        h3 { text-align: center; color: #38bdf8; }
-        h4 { margin-top: 20px; color: #cbd5e1; }
-        form { background: #334155; padding: 15px; border-radius: 8px; margin-top: 10px; }
-        button { background: #059669; color: #fff; border: none; padding: 10px 15px; border-radius: 5px; cursor: pointer; font-weight: bold; width: 100%; margin-top: 10px; }
-        button:hover { background: #047857; }
-        input[type="file"] { width: 100%; margin-bottom: 10px; }
-        .note { font-size: 12px; color: #94a3b8; margin-top: 20px; text-align: center; }
+        .box { background: #1e293b; padding: 20px; border-radius: 12px; max-width: 600px; margin: auto; }
+        .upload-row { background: #334155; padding: 15px; border-radius: 8px; margin-bottom: 20px; border-left: 5px solid #3b82f6; }
+        button { cursor: pointer; border: none; padding: 10px 15px; border-radius: 4px; font-weight: bold; }
+        .btn-create { background: #3b82f6; color: #fff; width: 100%; margin-bottom: 20px; }
+        .btn-upload { background: #059669; color: #fff; margin-top: 5px; }
+        .btn-delete { background: #ef4444; color: #fff; margin-top: 5px; }
+        label { font-size: 14px; color: #cbd5e1; }
     </style>
 </head>
 <body>
     <div class="box">
-        <h3>UPLOAD KE LITTERBOX</h3>
+        <h3>UPLOAD LITTERBOX (VISUAL + AUDIO)</h3>
+        <button class="btn-create" onclick="addPair()">+ TAMBAH BARIS UPLOAD BARU</button>
         
-        <!-- Form Visual -->
-        <h4>Visual (Foto/Video)</h4>
-        <form action="https://litterbox.catbox.moe/resources/internals/api.php" method="POST" enctype="multipart/form-data" target="_blank">
-            <input type="hidden" name="reqtype" value="fileupload">
-            <input type="hidden" name="time" value="72h">
-            <input type="file" name="fileToUpload" accept="video/*,image/*" required>
-            <button type="submit">UPLOAD VISUAL</button>
-        </form>
+        <div id="container">
+            <!-- Baris Awal -->
+            <div class="upload-row" id="row1">
+                <form action="https://litterbox.catbox.moe/resources/internals/api.php" method="POST" enctype="multipart/form-data" target="_blank" style="display:inline-block; width: 45%;">
+                    <input type="hidden" name="reqtype" value="fileupload">
+                    <input type="hidden" name="time" value="72h">
+                    <label>Visual (Foto/Video):</label><br>
+                    <input type="file" name="fileToUpload" accept="video/*,image/*" required>
+                    <button type="submit" class="btn-upload">UPLOAD</button>
+                </form>
 
-        <!-- Form Audio -->
-        <h4>Audio</h4>
-        <form action="https://litterbox.catbox.moe/resources/internals/api.php" method="POST" enctype="multipart/form-data" target="_blank">
-            <input type="hidden" name="reqtype" value="fileupload">
-            <input type="hidden" name="time" value="72h">
-            <input type="file" name="fileToUpload" accept="audio/*" required>
-            <button type="submit">UPLOAD AUDIO</button>
-        </form>
-
-        <p class="note">
-            * Tombol akan membuka tab baru. Link file akan muncul di tab tersebut setelah selesai.
-        </p>
+                <form action="https://litterbox.catbox.moe/resources/internals/api.php" method="POST" enctype="multipart/form-data" target="_blank" style="display:inline-block; width: 45%;">
+                    <input type="hidden" name="reqtype" value="fileupload">
+                    <input type="hidden" name="time" value="72h">
+                    <label>Audio:</label><br>
+                    <input type="file" name="fileToUpload" accept="audio/*" required>
+                    <button type="submit" class="btn-upload">UPLOAD</button>
+                </form>
+                
+                <button class="btn-delete" onclick="this.parentElement.remove()">HAPUS BARIS</button>
+            </div>
+        </div>
     </div>
+
+    <script>
+        function addPair() {
+            const container = document.getElementById('container');
+            const div = document.createElement('div');
+            div.className = 'upload-row';
+            div.innerHTML = `
+                <form action="https://litterbox.catbox.moe/resources/internals/api.php" method="POST" enctype="multipart/form-data" target="_blank" style="display:inline-block; width: 45%;">
+                    <input type="hidden" name="reqtype" value="fileupload">
+                    <input type="hidden" name="time" value="72h">
+                    <label>Visual:</label><br>
+                    <input type="file" name="fileToUpload" accept="video/*,image/*" required>
+                    <button type="submit" class="btn-upload">UPLOAD</button>
+                </form>
+                <form action="https://litterbox.catbox.moe/resources/internals/api.php" method="POST" enctype="multipart/form-data" target="_blank" style="display:inline-block; width: 45%;">
+                    <input type="hidden" name="reqtype" value="fileupload">
+                    <input type="hidden" name="time" value="72h">
+                    <label>Audio:</label><br>
+                    <input type="file" name="fileToUpload" accept="audio/*" required>
+                    <button type="submit" class="btn-upload">UPLOAD</button>
+                </form>
+                <button class="btn-delete" onclick="this.parentElement.remove()">HAPUS BARIS</button>
+            `;
+            container.appendChild(div);
+        }
+    </script>
 </body>
 </html>
