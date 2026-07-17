@@ -9,73 +9,47 @@
         .container { background: rgba(255, 255, 255, 0.05); backdrop-filter: blur(10px); border: 1px solid rgba(255, 255, 255, 0.1); padding: 30px; border-radius: 16px; width: 100%; max-width: 650px; }
         h1 { color: #a855f7; margin-bottom: 20px; font-size: 28px; text-shadow: 0 0 10px rgba(168,85,247,0.5); }
         .form-group { margin-bottom: 20px; text-align: left; }
-        label { display: block; margin-bottom: 8px; font-weight: bold; color: #cbd5e1; font-size: 14px; }
-        input[type="file"] { width: 100%; padding: 12px; border-radius: 8px; border: 1px solid #4c1d95; background: rgba(15, 23, 42, 0.6); color: #fff; box-sizing: border-box; }
-        .btn-generate { background: #a855f7; color: white; width: 100%; padding: 14px; border: none; border-radius: 8px; font-size: 16px; cursor: pointer; margin-top: 10px; }
-        .status-box { margin-top: 20px; padding: 15px; border-radius: 8px; background: rgba(0,0,0,0.4); border-left: 4px solid #a855f7; display: none; font-family: monospace; font-size: 13px; }
+        input[type="file"] { width: 100%; padding: 12px; border-radius: 8px; border: 1px solid #4c1d95; background: rgba(15, 23, 42, 0.6); color: #fff; }
+        .btn-generate { background: #a855f7; color: white; width: 100%; padding: 14px; border: none; border-radius: 8px; font-size: 16px; cursor: pointer; }
+        .status-box { margin-top: 20px; padding: 15px; border-radius: 8px; background: rgba(0,0,0,0.4); border-left: 4px solid #a855f7; display: none; font-size: 14px; }
     </style>
 </head>
 <body>
     <div class="container">
         <h1>BOT DASHBOARD PRO 🚀</h1>
-        
-        <div class="form-group">
-            <label>Visual (Foto/Video):</label>
-            <input type="file" id="visualFile" accept="video/*,image/*">
-        </div>
-
-        <div class="form-group">
-            <label>Suara (Audio):</label>
-            <input type="file" id="audioFile" accept="audio/*">
-        </div>
-
-        <button class="btn-generate" onclick="startUploadAndGenerate()">🚀 UPLOAD & GENERATE VIDEO</button>
+        <div class="form-group"><input type="file" id="visualFile" accept="video/*,image/*"></div>
+        <div class="form-group"><input type="file" id="audioFile" accept="audio/*"></div>
+        <button class="btn-generate" onclick="startUpload()">🚀 UPLOAD KE GOFILE</button>
         <div id="statusBox" class="status-box"></div>
     </div>
 
     <script>
-    async function startUploadAndGenerate() {
+    async function startUpload() {
         const statusBox = document.getElementById('statusBox');
-        const visualFile = document.getElementById('visualFile').files[0];
-        const audioFile = document.getElementById('audioFile').files[0];
+        const vFile = document.getElementById('visualFile').files[0];
+        const aFile = document.getElementById('audioFile').files[0];
 
-        if (!visualFile || !audioFile) {
-            alert("Harap pilih file terlebih dahulu!");
-            return;
-        }
+        if (!vFile || !aFile) { alert("Pilih file dulu!"); return; }
 
         statusBox.style.display = "block";
-        statusBox.innerHTML = "⏳ Mengunggah file ke GoFile...";
+        statusBox.innerHTML = "⏳ Mengupload ke GoFile...";
 
-        try {
-            // 1. Upload ke GoFile (Public Upload)
-            const uploadFile = async (file) => {
-                const formData = new FormData();
-                formData.append("file", file);
-                const res = await fetch("https://store1.gofile.io/uploadFile", { method: "POST", body: formData });
-                const json = await res.json();
-                return json.data.downloadPage;
-            };
+        const upload = async (f) => {
+            const fd = new FormData(); fd.append("file", f);
+            const r = await fetch("https://store1.gofile.io/uploadFile", {method:"POST", body:fd});
+            const j = await r.json(); return j.data.downloadPage;
+        };
 
-            const vUrl = await uploadFile(visualFile);
-            const aUrl = await uploadFile(audioFile);
+        const vUrl = await upload(vFile);
+        const aUrl = await upload(aFile);
 
-            statusBox.innerHTML = "✅ Upload sukses! Menjalankan Workflow...";
-
-            // 2. Trigger GitHub Action
-            // PENTING: Ganti URL di bawah dengan alamat server backend Anda (misal Railway/Render)
-            // Backend ini yang akan memegang TOKEN secara aman di env (secrets)
-            await fetch("https://SERVER-BACKEND-ANDA.up.railway.app/api/trigger", {
-                method: "POST",
-                headers: { "Content-Type": "application/json" },
-                body: JSON.stringify({ video: vUrl, audio: aUrl })
-            });
-
-            statusBox.innerHTML = "🚀 <strong>Berhasil!</strong> Render sudah masuk antrean. Cek tab 'Actions' di GitHub Anda.";
-        } catch (err) {
-            statusBox.style.borderLeftColor = "#ef4444";
-            statusBox.innerHTML = "❌ Error: " + err.message;
-        }
+        statusBox.innerHTML = `
+            <strong>✅ Upload Berhasil!</strong><br><br>
+            Copy link ini untuk di-paste di GitHub Actions:<br><br>
+            <strong>Visual:</strong> ${vUrl}<br>
+            <strong>Audio:</strong> ${aUrl}<br><br>
+            <p style="color:#10b981">Sekarang buka tab <strong>Actions</strong> di GitHub, pilih <strong>Render Video Engine</strong>, klik <strong>Run workflow</strong>, dan paste link di atas.</p>
+        `;
     }
     </script>
 </body>
