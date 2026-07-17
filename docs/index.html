@@ -1,33 +1,75 @@
 <!DOCTYPE html>
-<html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>BOT DASHBOARD PRO - GITHUB ACTIONS</title>
+    <style>
+        /* CSS ASLI DARI SERVER.JS ANDA */
+        body { font-family: 'Segoe UI', Tahoma, sans-serif; background: linear-gradient(180deg, #1a102b, #120a1f, #0b0715); color: #fff; min-height: 100vh; margin: 0; padding: 40px 20px; display: flex; flex-direction: column; align-items: center; }
+        .container { background: rgba(255, 255, 255, 0.05); backdrop-filter: blur(10px); border: 1px solid rgba(255, 255, 255, 0.1); padding: 30px; border-radius: 16px; width: 100%; max-width: 650px; }
+        h1 { color: #a855f7; margin-bottom: 20px; font-size: 28px; }
+        .file-input-container { background: rgba(255,255,255,0.02); padding: 15px; margin-bottom: 15px; border-radius: 8px; border: 1px dashed rgba(168,85,247,0.3); }
+        .btn-generate { background: #a855f7; color: white; width: 100%; padding: 14px; border: none; border-radius: 8px; font-size: 16px; cursor: pointer; }
+        .status-box { margin-top: 20px; padding: 15px; border-radius: 8px; background: rgba(0,0,0,0.4); border-left: 4px solid #a855f7; display: none; word-break: break-all; }
+    </style>
+</head>
 <body>
-    <input type="file" id="visualFile">
-    <input type="file" id="audioFile">
-    <button onclick="startProcess()">🚀 RENDER</button>
+    <div class="container">
+        <h1>BOT DASHBOARD PRO 🚀</h1>
+        <div id="fileContainer">
+            <div class="file-input-container">
+                <label>Visual (Foto/Video):</label>
+                <input type="file" id="visualFile" accept="video/*,image/*">
+                <br><br>
+                <label>Suara (Audio):</label>
+                <input type="file" id="audioFile" accept="audio/*">
+            </div>
+        </div>
+        <button class="btn-generate" onclick="startUploadAndGenerate()">🚀 UPLOAD & GENERATE</button>
+        <div id="statusBox" class="status-box"></div>
+    </div>
 
     <script>
-    async function startProcess() {
-        // 1. Upload ke GoFile
-        const formData = new FormData();
-        formData.append("file", document.getElementById('visualFile').files[0]);
-        
-        const upload = await fetch("https://store1.gofile.io/uploadFile", { method: "POST", body: formData });
-        const result = await upload.json();
-        const fileUrl = result.data.downloadPage;
+    async function startUploadAndGenerate() {
+        const statusBox = document.getElementById('statusBox');
+        statusBox.style.display = "block";
+        statusBox.innerHTML = "⏳ Mengunggah ke GoFile...";
 
-        // 2. Trigger GitHub Action
-        await fetch("https://api.github.com/repos/USERNAME/REPO_NAME/dispatches", {
-            method: "POST",
-            headers: {
-                "Authorization": "token GITHUB_PAT_ANDA",
-                "Accept": "application/vnd.github.v3+json"
-            },
-            body: JSON.stringify({
-                event_type: "render-video",
-                client_payload: { video_url: fileUrl }
-            })
-        });
-        alert("Render dimulai! Cek tab Actions di GitHub.");
+        try {
+            // 1. Upload Visual ke GoFile
+            const vData = new FormData();
+            vData.append("file", document.getElementById('visualFile').files[0]);
+            const vRes = await fetch("https://store1.gofile.io/uploadFile", { method: "POST", body: vData });
+            const vJson = await vRes.json();
+            const vUrl = vJson.data.downloadPage;
+
+            // 2. Upload Audio ke GoFile
+            const aData = new FormData();
+            aData.append("file", document.getElementById('audioFile').files[0]);
+            const aRes = await fetch("https://store1.gofile.io/uploadFile", { method: "POST", body: aData });
+            const aJson = await aRes.json();
+            const aUrl = aJson.data.downloadPage;
+
+            statusBox.innerHTML = "✅ Upload selesai! Memicu GitHub Actions...";
+
+            // 3. Trigger GitHub Action
+            await fetch("https://api.github.com/repos/USERNAME/REPO_NAME/dispatches", {
+                method: "POST",
+                headers: {
+                    "Authorization": "token GITHUB_PAT_ANDA",
+                    "Accept": "application/vnd.github.v3+json"
+                },
+                body: JSON.stringify({
+                    event_type: "render-video",
+                    client_payload: { video: vUrl, audio: aUrl }
+                })
+            });
+
+            statusBox.innerHTML = "🚀 <strong>Render dimulai!</strong> Cek tab Actions di repositori Anda.";
+        } catch (err) {
+            statusBox.innerHTML = "❌ Error: " + err.message;
+        }
     }
     </script>
 </body>
