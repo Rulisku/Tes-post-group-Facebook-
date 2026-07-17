@@ -42,4 +42,3 @@ jobs:
         with:
           name: video-hasil
           path: output.mp4
-          
