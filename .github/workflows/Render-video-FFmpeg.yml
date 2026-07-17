@@ -1,30 +1,45 @@
 name: Render Video Engine
+
 on:
-  repository_dispatch:
-    types: [render-video]
   workflow_dispatch:
+    inputs:
+      video_url:
+        description: 'URL Visual (Foto atau Video)'
+        required: true
+      audio_url:
+        description: 'URL Audio (MP3/WAV)'
+        required: true
 
 jobs:
   render:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v3
-
       - name: Install FFmpeg
-        run: sudo apt-get update && sudo apt-get install -y ffmpeg
-
-      - name: Download & Render
-        env:
-          VIDEO_URL: ${{ github.event.client_payload.video_url }}
         run: |
-          # Download file dari GoFile (Perlu sedikit trik untuk ambil direct link)
-          wget -O input.mp4 $VIDEO_URL
+          sudo apt-get update
+          sudo apt-get install -y ffmpeg
+
+      - name: Render Video
+        run: |
+          # Download file
+          wget -O visual_input "${{ github.event.inputs.video_url }}"
+          wget -O audio_input "${{ github.event.inputs.audio_url }}"
           
-          # Render Video (Gunakan command FFmpeg Anda)
-          ffmpeg -i input.mp4 -c:v libx264 -preset ultrafast output.mp4
+          # Deteksi apakah visual adalah gambar atau video
+          # Jika gambar, tambahkan filter loop dan durasi
+          file_type=$(file --mime-type -b visual_input)
+          
+          if [[ $file_type == image/* ]]; then
+            echo "Deteksi: Gambar - Melakukan proses loop..."
+            ffmpeg -loop 1 -i visual_input -i audio_input -c:v libx264 -tune stillimage -c:a aac -b:a 192k -pix_fmt yuv420p -shortest -preset ultrafast output.mp4
+          else
+            echo "Deteksi: Video - Menggabungkan langsung..."
+            ffmpeg -i visual_input -i audio_input -c:v libx264 -c:a aac -pix_fmt yuv420p -shortest -preset ultrafast output.mp4
+          fi
 
       - name: Upload Artifact
-        uses: actions/upload-artifact@v3
+        uses: actions/upload-artifact@v4
         with:
-          name: hasil-render
+          name: video-hasil
           path: output.mp4
+          
