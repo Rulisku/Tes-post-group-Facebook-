@@ -34,11 +34,14 @@
         statusBox.style.display = "block";
         statusBox.innerHTML = "⏳ Mengupload ke GoFile...";
 
-        const upload = async (f) => {
-            const fd = new FormData(); fd.append("file", f);
-            const r = await fetch("https://store1.gofile.io/uploadFile", {method:"POST", body:fd});
-            const j = await r.json(); return j.data.downloadPage;
-        };
+        const up = async (f) => {
+    const fd = new FormData();
+    fd.append("fileToUpload", f);
+    fd.append("reqtype", "fileupload");
+    const r = await fetch("https://catbox.moe/user/api.php", {method:"POST", body:fd});
+    return await r.text(); // Hasilnya adalah direct link murni
+};
+
 
         const vUrl = await upload(vFile);
         const aUrl = await upload(aFile);
