@@ -1,66 +1,93 @@
 <!DOCTYPE html>
-<html>
+<html lang="id">
 <head>
     <meta charset="UTF-8">
-    <title>Upload (Fast Hybrid)</title>
+    <title>Upload Antrean (Litterbox)</title>
     <style>
         body { background: #0f172a; color: white; font-family: sans-serif; padding: 20px; }
         .row { background: #334155; padding: 15px; margin-bottom: 20px; border-radius: 8px; }
-        button { background: #3b82f6; color: white; border: none; padding: 10px; cursor: pointer; border-radius: 4px; }
+        button { background: #3b82f6; color: white; border: none; padding: 10px 15px; cursor: pointer; border-radius: 4px; font-weight: bold; }
+        button:disabled { background: #64748b; cursor: not-allowed; }
+        .result { margin-top: 10px; font-size: 0.9em; word-break: break-all; }
     </style>
 </head>
 <body>
 
-<h3>UPLOAD LITTERBOX (HYBRID MODE)</h3>
+<h3>LITTERBOX AUTO-QUEUE UPLOAD</h3>
 <button onclick="addRow()">+ TAMBAH BARIS</button>
 <div id="container"></div>
 
 <script>
+    let uploadQueue = [];
+    let isUploading = false;
+
     function addRow() {
         const div = document.createElement('div');
         div.className = 'row';
         const resId = 'res_' + Date.now();
         div.innerHTML = `
-            <input type="file" required>
-            <button onclick="uploadHybrid(this, '${resId}')">UPLOAD</button>
-            <div id="${resId}" style="margin-top:10px;"></div>
+            <input type="file" class="fileInput">
+            <button onclick="addToQueue(this, '${resId}')">UPLOAD</button>
+            <div id="${resId}" class="result">Menunggu...</div>
         `;
         document.getElementById('container').appendChild(div);
     }
 
-    function uploadHybrid(btn, resId) {
+    function addToQueue(btn, resId) {
         const fileInput = btn.previousElementSibling;
-        if (!fileInput.files[0]) return;
+        if (!fileInput.files[0]) return alert("Pilih file dulu!");
+
+        // Tambah ke antrean
+        uploadQueue.push({ btn, resId, file: fileInput.files[0] });
+        btn.innerText = "Dalam Antrean...";
+        btn.disabled = true;
+
+        // Panggil pemroses antrean
+        processQueue();
+    }
+
+    function processQueue() {
+        if (isUploading || uploadQueue.length === 0) return;
+
+        isUploading = true;
+        const { btn, resId, file } = uploadQueue.shift();
 
         btn.innerText = "Mengunggah...";
-        btn.disabled = true;
 
         const formData = new FormData();
         formData.append("reqtype", "fileupload");
         formData.append("time", "12h");
-        formData.append("fileToUpload", fileInput.files[0]);
+        formData.append("fileToUpload", file);
 
         const xhr = new XMLHttpRequest();
         xhr.open("POST", "https://litterbox.catbox.moe/resources/internals/api.php", true);
-        
-        // PENTING: Jangan set Content-Type header manual! 
-        // Biarkan browser yang men-generate-nya secara otomatis 
-        // agar boundary file benar-benar sesuai dengan standar form.
 
         xhr.onload = function() {
             if (xhr.status === 200) {
-                const link = xhr.responseText.trim();
-                document.getElementById(resId).innerHTML = `Link: <a href="${link}" target="_blank">${link}</a>`;
+                const url = xhr.responseText.trim();
+                document.getElementById(resId).innerHTML = `Link: <a href="${url}" target="_blank">${url}</a>`;
                 btn.innerText = "Selesai";
             } else {
-                btn.innerText = "Gagal (Status " + xhr.status + ")";
+                document.getElementById(resId).innerText = "Gagal (Status " + xhr.status + ")";
+                btn.innerText = "Gagal";
                 btn.disabled = false;
             }
+            isUploading = false;
+            processQueue(); // Lanjut ke file berikutnya
+        };
+
+        xhr.onerror = function() {
+            document.getElementById(resId).innerText = "Error Jaringan";
+            btn.innerText = "Coba Lagi";
+            btn.disabled = false;
+            isUploading = false;
+            processQueue(); // Lanjut ke file berikutnya
         };
 
         xhr.send(formData);
     }
 
+    // Tambah baris pertama otomatis
     addRow();
 </script>
 </body>
