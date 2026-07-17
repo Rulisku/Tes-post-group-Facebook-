@@ -3,7 +3,7 @@ on:
   workflow_dispatch:
     inputs:
       urls:
-        description: 'Masukkan URL Google Drive (pisahkan dengan spasi)'
+        description: 'Masukkan URL Google Drive (pisahkan dengan spasi atau koma)'
         required: true
         type: textarea
 
@@ -13,32 +13,36 @@ jobs:
     steps:
       - name: Setup & Download
         run: |
+          # 1. Update sistem dan install FFmpeg
           sudo apt-get update && sudo apt-get install -y ffmpeg
           pip install gdown
           mkdir downloads
           
-          # Fungsi AJAIB: Mengambil ID secara otomatis dari URL apa pun
-          # Tidak peduli apakah itu link panjang atau pendek, dia akan potong sendiri
-          extract_id() {
-             # Mengambil string di antara '/d/' dan '/'
-             echo "$1" | sed -E 's/.*\/d\/([a-zA-Z0-9_-]+).*/\1/'
-          }
+          # 2. Bersihkan input: ubah koma menjadi spasi agar bisa dibaca loop
+          CLEAN_URLS=$(echo "${{ github.event.inputs.urls }}" | tr ',' ' ')
           
-          # Loop otomatis membaca setiap URL yang di-paste
-          for url in ${{ github.event.inputs.urls }}; do
-            id=$(extract_id "$url")
-            echo "Mengekstrak ID dari: $url -> Hasil: $id"
-            gdown --id "$id" -O "downloads/$id.mp4"
+          # 3. Download setiap link
+          count=1
+          for url in $CLEAN_URLS; do
+            echo "Mengunduh file ke-$count..."
+            # gdown versi terbaru mendukung URL langsung
+            gdown "$url" -O "downloads/video_$count.mp4"
+            count=$((count + 1))
           done
           
-          # Membuat list FFmpeg otomatis
-          for f in downloads/*.mp4; do echo "file '$f'" >> downloads/list.txt; done
+          # 4. Buat list untuk FFmpeg (concat file)
+          for f in downloads/*.mp4; do 
+            echo "file '$f'" >> downloads/list.txt
+          done
 
       - name: Merge Video
-        run: ffmpeg -f concat -safe 0 -i downloads/list.txt -c copy output.mp4
+        run: |
+          # 5. Gabungkan tanpa re-encode (-c copy) supaya sangat cepat
+          ffmpeg -f concat -safe 0 -i downloads/list.txt -c copy output.mp4
 
-      - name: Upload
+      - name: Upload Artifact
         uses: actions/upload-artifact@v4
         with:
           name: final-video
           path: output.mp4
+          
