@@ -2,19 +2,16 @@
 <html>
 <head>
     <meta charset="UTF-8">
-    <title>Litterbox Direct Upload</title>
+    <title>Upload (Fast Hybrid)</title>
     <style>
         body { background: #0f172a; color: white; font-family: sans-serif; padding: 20px; }
         .row { background: #334155; padding: 15px; margin-bottom: 20px; border-radius: 8px; }
-        .result { margin-top: 10px; padding: 10px; background: #0f172a; border-left: 4px solid #3b82f6; }
-        button { background: #3b82f6; color: white; border: none; padding: 10px 15px; cursor: pointer; border-radius: 4px; font-weight: bold; }
-        button:disabled { background: #64748b; }
-        input[type="file"] { color: #cbd5e1; }
+        button { background: #3b82f6; color: white; border: none; padding: 10px; cursor: pointer; border-radius: 4px; }
     </style>
 </head>
 <body>
 
-<h3>LITTERBOX DIRECT UPLOAD</h3>
+<h3>UPLOAD LITTERBOX (HYBRID MODE)</h3>
 <button onclick="addRow()">+ TAMBAH BARIS</button>
 <div id="container"></div>
 
@@ -23,48 +20,47 @@
         const div = document.createElement('div');
         div.className = 'row';
         const resId = 'res_' + Date.now();
-
         div.innerHTML = `
             <input type="file" required>
-            <button onclick="uploadLitterbox(this, '${resId}')">UPLOAD</button>
-            <div id="${resId}" class="result">Menunggu file...</div>
+            <button onclick="uploadHybrid(this, '${resId}')">UPLOAD</button>
+            <div id="${resId}" style="margin-top:10px;"></div>
         `;
         document.getElementById('container').appendChild(div);
     }
-function uploadLitterbox(btn, resId) {
-    const fileInput = btn.previousElementSibling;
-    if (!fileInput.files[0]) return alert("Pilih file dulu!");
 
-    btn.innerText = "Mengirim...";
-    btn.disabled = true;
+    function uploadHybrid(btn, resId) {
+        const fileInput = btn.previousElementSibling;
+        if (!fileInput.files[0]) return;
 
-    const formData = new FormData();
-    formData.append("reqtype", "fileupload");
-    formData.append("time", "12h"); // Sesuai config Anda
-    formData.append("fileToUpload", fileInput.files[0]);
+        btn.innerText = "Mengunggah...";
+        btn.disabled = true;
 
-    const xhr = new XMLHttpRequest();
-    
-    // Trik optimasi: Matikan cache agar tidak ada proses pembacaan file ganda
-    xhr.open("POST", "https://litterbox.catbox.moe/resources/internals/api.php", true);
+        const formData = new FormData();
+        formData.append("reqtype", "fileupload");
+        formData.append("time", "12h");
+        formData.append("fileToUpload", fileInput.files[0]);
 
-    xhr.onload = function() {
-        if (xhr.status === 200) {
-            const link = xhr.responseText.trim();
-            document.getElementById(resId).innerHTML = `Link: <a href="${link}" target="_blank">${link}</a>`;
-            btn.innerText = "Selesai";
-        } else {
-            btn.innerText = "Gagal (Status " + xhr.status + ")";
-            btn.disabled = false;
-        }
-    };
+        const xhr = new XMLHttpRequest();
+        xhr.open("POST", "https://litterbox.catbox.moe/resources/internals/api.php", true);
+        
+        // PENTING: Jangan set Content-Type header manual! 
+        // Biarkan browser yang men-generate-nya secara otomatis 
+        // agar boundary file benar-benar sesuai dengan standar form.
 
-    // Kirim data
-    xhr.send(formData);
-}
+        xhr.onload = function() {
+            if (xhr.status === 200) {
+                const link = xhr.responseText.trim();
+                document.getElementById(resId).innerHTML = `Link: <a href="${link}" target="_blank">${link}</a>`;
+                btn.innerText = "Selesai";
+            } else {
+                btn.innerText = "Gagal (Status " + xhr.status + ")";
+                btn.disabled = false;
+            }
+        };
 
-    
-    // Tambah satu baris saat halaman dimuat
+        xhr.send(formData);
+    }
+
     addRow();
 </script>
 </body>
