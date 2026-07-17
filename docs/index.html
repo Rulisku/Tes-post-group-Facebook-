@@ -34,27 +34,29 @@
         statusBox.style.display = "block";
         statusBox.innerHTML = "⏳ Mengupload ke Pixeldrain...";
 
-                const upload = async (f) => {
+        const upload = async (f) => {
             const fd = new FormData();
             fd.append("file", f);
             
+            // Mengirim request ke API
             const r = await fetch("https://pixeldrain.com/api/file", {
                 method: "POST", 
                 body: fd
             });
             
-            if (!r.ok) throw new Error("Gagal upload ke Pixeldrain");
+            if (!r.ok) {
+                const errText = await r.text();
+                throw new Error(`Server menolak (Status: ${r.status}) - ${errText}`);
+            }
             
             const j = await r.json(); 
             
-            // Memastikan ID benar-benar ada sebelum mengembalikan link
             if (j.id) {
                 return `https://pixeldrain.com/api/file/${j.id}`;
             } else {
-                throw new Error("ID file tidak ditemukan dalam respons server");
+                throw new Error("Respons API tidak valid (ID tidak ditemukan)");
             }
         };
-
 
         try {
             const vUrl = await upload(vFile);
@@ -68,7 +70,8 @@
                 <p style="color:#10b981">Sekarang buka tab <strong>Actions</strong> di GitHub, pilih <strong>Render Video Engine</strong>, klik <strong>Run workflow</strong>, dan paste link di atas.</p>
             `;
         } catch (err) {
-            statusBox.innerHTML = "❌ Terjadi kesalahan: " + err.message;
+            statusBox.innerHTML = "❌ <strong>Error:</strong> " + err.message + "<br><br>Catatan: Jika ada pesan 'CORS', kemungkinan browser Anda memblokir koneksi ke Pixeldrain.";
+            console.error(err);
         }
     }
     </script>
