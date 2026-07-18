@@ -4,7 +4,7 @@ on:
   workflow_dispatch:
     inputs:
       urls:
-        description: 'Masukkan URL (Drive/Filebin) pisahkan dengan koma atau spasi'
+        description: 'Masukkan URL (Drive, Filebin, atau lainnya) pisahkan dengan spasi'
         required: true
         type: textarea
 
@@ -20,37 +20,44 @@ jobs:
           pip install gdown
           mkdir -p downloads ready
           
-          # Bersihkan input dan proses download
+          # Bersihkan input (mengganti koma dengan spasi)
           CLEAN_URLS=$(echo "${{ github.event.inputs.urls }}" | tr ',' ' ')
           
           count=1
           for url in $CLEAN_URLS; do
-            echo "Memproses file ke-$count..."
-            # Cek jika Google Drive, gunakan gdown (metode potong ID Anda)
+            echo "Memproses file ke-$count: $url"
+            
             if [[ "$url" == *"drive.google.com"* ]]; then
+              echo "Mengunduh via gdown (Google Drive)..."
               gdown "$url" -O "downloads/temp_$count.mp4"
+            elif [[ "$url" == *"filebin.net"* ]]; then
+              echo "Mengunduh via curl (Filebin)..."
+              # Pastikan link Filebin adalah link langsung ke file
+              curl -L "$url" -o "downloads/temp_$count.mp4"
             else
-              # Jika Filebin/Link lain, gunakan yt-dlp
+              echo "Mengunduh via yt-dlp..."
               yt-dlp --no-check-certificate -o "downloads/temp_$count.%(ext)s" "$url"
             fi
             count=$((count + 1))
           done
           
-          # NORMALISASI: Jadikan semua format (.mp3, .jpg, dll) menjadi .mp4 yang seragam
-          for f in downloads/*; do
-            echo "Menyamakan format: $f"
-            # -preset ultrafast membuat proses ini sangat cepat
-            ffmpeg -i "$f" -c:v libx264 -preset ultrafast -c:a aac -pix_fmt yuv420p -y "ready/$(basename "$f").mp4"
+          # NORMALISASI: Jadikan semua format (.mp3, .mkv, .webm, dll) menjadi .mp4
+          # Proses ini memastikan FFmpeg tidak error saat melakukan concat
+          echo "Menyamakan format semua file ke .mp4..."
+          for f in downloads/temp_*; do
+            if [ -f "$f" ]; then
+              ffmpeg -i "$f" -c:v libx264 -preset ultrafast -c:a aac -pix_fmt yuv420p -y "ready/$(basename "$f" .mp4).mp4"
+            fi
           done
           
-          # Buat list dari file yang sudah seragam
-          for f in ready/*.mp4; do 
+          # Buat list untuk FFmpeg (diurutkan berdasarkan nama)
+          for f in $(ls -v ready/*.mp4); do 
             echo "file '$(pwd)/$f'" >> list.txt
           done
 
       - name: Merge Video
         run: |
-          # Sekarang aman menggunakan -c copy
+          # Gabungkan file tanpa re-encode lagi karena sudah diseragamkan
           ffmpeg -f concat -safe 0 -i list.txt -c copy output.mp4
 
       - name: Upload Artifact
