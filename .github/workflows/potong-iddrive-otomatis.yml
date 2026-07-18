@@ -1,10 +1,10 @@
-name: AUTO MERGE VIDEO-AUDIO DRIVE DAN MEGA IO
+name: AUTO MERGE VIDEO-VIDEO STABIL
 
 on:
   workflow_dispatch:
     inputs:
       urls:
-        description: 'Masukkan URL (contoh: video1,audio1 atau video1,video2)'
+        description: 'Masukkan URL (pisahkan koma)'
         required: true
         type: textarea
 
@@ -22,37 +22,36 @@ jobs:
         run: |
           URLS=$(echo "${{ github.event.inputs.urls }}" | tr ',' ' ')
           arr=($URLS)
-          for (( i=0; i<${#arr[@]}; i+=2 )); do
-            # Download pasangan
-            for j in 0 1; do
-              idx=$((i+j))
-              url=${arr[$idx]}
-              if [ -n "$url" ]; then
-                if [[ "$url" == *"mega.nz"* ]]; then
-                  megadl "$url" --path "downloads/raw_$idx"
-                else
-                  gdown "$url" -O "downloads/raw_$idx"
-                fi
-              fi
-            done
-
-            # Deteksi apakah file pertama adalah gambar
+          
+          for (( i=0; i<${#arr[@]}; i++ )); do
+            url=${arr[$i]}
+            
+            # Download file
+            if [[ "$url" == *"mega.nz"* ]]; then
+              megadl "$url" --path "downloads/raw_$i"
+            else
+              gdown "$url" -O "downloads/raw_$i"
+            fi
+            
+            # Normalisasi:
+            # Jika FOTO: Loop + Shortest (paksa durasi)
+            # Jika VIDEO: Tanpa loop, tanpa Shortest (pertahankan durasi asli)
             if file --mime-type "downloads/raw_$i" | grep -q "image/"; then
-              # Jika Foto: Gunakan loop
+              # Gunakan file selanjutnya sebagai referensi durasi untuk foto
               ffmpeg -y -loop 1 -i "downloads/raw_$i" -i "downloads/raw_$((i+1))" \
               -vf "scale=1280:720:force_original_aspect_ratio=increase,crop=1280:720" \
               -c:v libx264 -pix_fmt yuv420p -c:a aac -shortest "ready/video_$i.mp4"
             else
-              # Jika Video: Tanpa loop
-              ffmpeg -y -i "downloads/raw_$i" -i "downloads/raw_$((i+1))" \
+              # Untuk video biasa: langsung normalisasi resolusi/format
+              ffmpeg -y -i "downloads/raw_$i" \
               -vf "scale=1280:720:force_original_aspect_ratio=increase,crop=1280:720" \
-              -c:v libx264 -pix_fmt yuv420p -c:a aac -shortest "ready/video_$i.mp4"
+              -c:v libx264 -pix_fmt yuv420p -c:a aac -ar 44100 "ready/video_$i.mp4"
             fi
           done
 
       - name: Merge Final
         run: |
-          for f in $(ls -v ready/video_*.mp4); do echo "file '$(pwd)/$f'" >> list.txt; done
+          find ready -name "video_*.mp4" | sort | sed "s/^/file '&'/" > list.txt
           ffmpeg -f concat -safe 0 -i list.txt -c copy output.mp4
 
       - name: Upload Artifact
@@ -60,3 +59,4 @@ jobs:
         with:
           name: final-video
           path: output.mp4
+          
