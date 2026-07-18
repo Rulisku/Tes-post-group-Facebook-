@@ -1,10 +1,10 @@
-name: AUTO MERGE DRIVE DAN MEGA IO
+name: AUTO MERGE SYNC AUDIO DRIVE DAN MEGA IO
 
 on:
   workflow_dispatch:
     inputs:
       urls:
-        description: 'Masukkan URL (Pisahkan dengan koma)'
+        description: 'Masukkan URL berpasangan (foto1,audio1,foto2,audio2, video 1, video2)'
         required: true
         type: textarea
 
@@ -12,30 +12,38 @@ jobs:
   proses:
     runs-on: ubuntu-latest
     steps:
-      - name: Setup
+      - name: Setup & Download
         run: |
           sudo apt-get update && sudo apt-get install -y ffmpeg megatools
           pip install gdown
           mkdir -p downloads ready
 
-      - name: Download & Normalize
+      - name: Sync & Encode
         run: |
           URLS=$(echo "${{ github.event.inputs.urls }}" | tr ',' ' ')
-          count=1
-          for url in $URLS; do
-            # Download
-            if [[ "$url" == *"mega.nz"* ]]; then
-              megadl "$url" --path "downloads/file_$count"
-            else
-              gdown "$url" -O "downloads/file_$count"
-            fi
+          # Mengubah input menjadi array
+          arr=($URLS)
+          # Proses per 2 item (pasangan)
+          for (( i=0; i<${#arr[@]}; i+=2 )); do
+            # Download file
+            for j in 0 1; do
+              idx=$((i+j))
+              url=${arr[$idx]}
+              if [ -n "$url" ]; then
+                if [[ "$url" == *"mega.nz"* ]]; then
+                  megadl "$url" --path "downloads/raw_$idx"
+                else
+                  gdown "$url" -O "downloads/raw_$idx"
+                fi
+              fi
+            done
             
-            # Normalisasi ke MP4 standar
-            ffmpeg -y -i "downloads/file_$count" \
+            # PROSES SYNC: Foto/Video mengikuti durasi Audio
+            # -loop 1: looping foto agar jadi video
+            # -shortest: berhenti tepat saat audio habis
+            ffmpeg -y -loop 1 -i "downloads/raw_$i" -i "downloads/raw_$((i+1))" \
             -vf "scale=1280:720:force_original_aspect_ratio=increase,crop=1280:720" \
-            -c:v libx264 -pix_fmt yuv420p -c:a aac -ar 44100 "ready/video_$count.mp4"
-            
-            count=$((count + 1))
+            -c:v libx264 -pix_fmt yuv420p -c:a aac -shortest "ready/video_$i.mp4"
           done
 
       - name: Merge Final
@@ -43,8 +51,9 @@ jobs:
           for f in $(ls -v ready/video_*.mp4); do echo "file '$(pwd)/$f'" >> list.txt; done
           ffmpeg -f concat -safe 0 -i list.txt -c copy output.mp4
 
-      - name: Upload
+      - name: Upload Artifact
         uses: actions/upload-artifact@v4
         with:
           name: final-video
           path: output.mp4
+          
