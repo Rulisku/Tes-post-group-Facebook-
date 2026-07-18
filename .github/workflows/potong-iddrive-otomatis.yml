@@ -24,6 +24,7 @@ jobs:
           arr=($URLS)
           
           for (( i=0; i<${#arr[@]}; i++ )); do
+            # 1. Pastikan download SELESAI sebelum lanjut
             url=${arr[$i]}
             if [ -n "$url" ]; then
               if [[ "$url" == *"mega.nz"* ]]; then
@@ -32,20 +33,23 @@ jobs:
                 gdown "$url" -O "downloads/raw_$i"
               fi
             fi
+            
+            # Tambahan: Tunggu sampai file benar-benar ada di disk
+            until [ -f "downloads/raw_$i" ]; do sleep 1; done
+          done
 
-            # Deteksi apakah file ini IMAGE
+          # 2. Proses Encode setelah semua file siap
+          for (( i=0; i<${#arr[@]}; i++ )); do
             is_image=$(file --mime-type "downloads/raw_$i" | grep -q "image/" && echo "yes" || echo "no")
             
-            # Jika Image dan ada file berikutnya, gunakan logika Image+Audio
             if [ "$is_image" == "yes" ] && [ $((i+1)) -lt ${#arr[@]} ]; then
+                # IMAGE + AUDIO
                 ffmpeg -y -loop 1 -i "downloads/raw_$i" -i "downloads/raw_$((i+1))" \
                 -vf "scale=1280:720:force_original_aspect_ratio=increase,crop=1280:720" \
                 -c:v libx264 -pix_fmt yuv420p -c:a aac -shortest "ready/video_$i.mp4"
-                
-                # Lompat index karena audio sudah dipakai
                 i=$((i+1))
             else
-                # Jika Video atau file tunggal
+                # VIDEO SAJA
                 ffmpeg -y -i "downloads/raw_$i" \
                 -vf "scale=1280:720:force_original_aspect_ratio=increase,crop=1280:720" \
                 -c:v libx264 -pix_fmt yuv420p -c:a aac -ar 44100 "ready/video_$i.mp4"
