@@ -55,14 +55,14 @@ jobs:
             # KASUS: GAMBAR + AUDIO (Slide Foto)
             if [ "$is_img" == "yes" ] && [ "$is_next_aud" == "yes" ]; then
               ffmpeg -y -loop 1 -i "$f" -i "$next_f" \
-              -vf "scale=1280:720:force_original_aspect_ratio=increase,crop=1280:720" \
+              -vf "scale=1280:720:force_original_aspect_ratio=decrease,pad=1280:720:(ow-iw)/2:(oh-ih)/2"  \
               -c:v libx264 -pix_fmt yuv420p -c:a aac -shortest "ready/video_$i.mp4"
               i=$((i+1)) 
 
             # KASUS: VIDEO + AUDIO (Voice Over)
             elif [ "$is_vid" == "yes" ] && [ "$is_next_aud" == "yes" ]; then
               ffmpeg -y -i "$f" -i "$next_f" \
-              -vf "scale=1280:720:force_original_aspect_ratio=increase,crop=1280:720" \
+            -vf "scale=1280:720:force_original_aspect_ratio=decrease,pad=1280:720:(ow-iw)/2:(oh-ih)/2" \
               -c:v libx264 -pix_fmt yuv420p -c:a aac -map 0:v:0 -map 1:a:0 -shortest "ready/video_$i.mp4"
               i=$((i+1))
 
@@ -74,7 +74,7 @@ jobs:
             # KASUS: VIDEO SAJA (Tanpa pasangan)
             else
               ffmpeg -y -i "$f" \
-              -vf "scale=1280:720:force_original_aspect_ratio=increase,crop=1280:720" \
+             -vf "scale=1280:720:force_original_aspect_ratio=decrease,pad=1280:720:(ow-iw)/2:(oh-ih)/2" \
               -c:v libx264 -pix_fmt yuv420p -c:a aac -ar 44100 "ready/video_$i.mp4"
             fi
           done
