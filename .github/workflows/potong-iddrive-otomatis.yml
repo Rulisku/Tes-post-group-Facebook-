@@ -1,10 +1,10 @@
-name: AUTO MERGE PINTAR
+name: AUTO MERGE PINTAR DRIVE DAN MEGA IO
 
 on:
   workflow_dispatch:
     inputs:
       urls:
-        description: 'Masukkan URL (Pisahkan koma)'
+        description: 'Masukkan URL (Pisahkan koma, contoh: vid1,aud1,img1,aud2,vid3)'
         required: true
         type: textarea
 
@@ -17,48 +17,72 @@ jobs:
           sudo apt-get update && sudo apt-get install -y ffmpeg megatools
           pip install gdown
           mkdir -p downloads ready
-
-      - name: Sync & Encode
-        run: |
+          
+          # 1. Download dan Beri Ekstensi Otomatis
           URLS=$(echo "${{ github.event.inputs.urls }}" | tr ',' ' ')
           arr=($URLS)
           
           for (( i=0; i<${#arr[@]}; i++ )); do
-            # 1. Pastikan download SELESAI sebelum lanjut
             url=${arr[$i]}
-            if [ -n "$url" ]; then
-              if [[ "$url" == *"mega.nz"* ]]; then
-                megadl "$url" --path "downloads/raw_$i"
-              else
-                gdown "$url" -O "downloads/raw_$i"
-              fi
+            [ -z "$url" ] && continue
+            
+            output="downloads/raw_$i"
+            if [[ "$url" == *"mega.nz"* ]]; then
+              megadl "$url" --path "$output"
+            else
+              gdown "$url" -O "$output"
             fi
             
-            # Tambahan: Tunggu sampai file benar-benar ada di disk
-            until [ -f "downloads/raw_$i" ]; do sleep 1; done
+            # Beri ekstensi agar FFmpeg mengenali formatnya
+            ext=$(file --mime-type -b "$output" | cut -d/ -f2 | sed 's/jpeg/jpg/')
+            mv "$output" "$output.$ext"
           done
 
-          # 2. Proses Encode setelah semua file siap
-          for (( i=0; i<${#arr[@]}; i++ )); do
-            is_image=$(file --mime-type "downloads/raw_$i" | grep -q "image/" && echo "yes" || echo "no")
+      - name: Sync & Encode
+        run: |
+          # 2. Proses Encode Cerdas
+          files=($(ls downloads/raw_*.* | sort -V))
+          
+          for (( i=0; i<${#files[@]}; i++ )); do
+            f="${files[$i]}"
+            next_f="${files[$((i+1))]}"
             
-            if [ "$is_image" == "yes" ] && [ $((i+1)) -lt ${#arr[@]} ]; then
-                # IMAGE + AUDIO
-                ffmpeg -y -loop 1 -i "downloads/raw_$i" -i "downloads/raw_$((i+1))" \
-                -vf "scale=1280:720:force_original_aspect_ratio=increase,crop=1280:720" \
-                -c:v libx264 -pix_fmt yuv420p -c:a aac -shortest "ready/video_$i.mp4"
-                i=$((i+1))
+            # Deteksi tipe file
+            is_img=$(file --mime-type -b "$f" | grep -q "image/" && echo "yes" || echo "no")
+            is_vid=$(file --mime-type -b "$f" | grep -q "video/" && echo "yes" || echo "no")
+            is_next_aud=$( [[ -n "$next_f" ]] && file --mime-type -b "$next_f" | grep -q "audio/" && echo "yes" || echo "no")
+
+            # KASUS: GAMBAR + AUDIO (Slide Foto)
+            if [ "$is_img" == "yes" ] && [ "$is_next_aud" == "yes" ]; then
+              ffmpeg -y -loop 1 -i "$f" -i "$next_f" \
+              -vf "scale=1280:720:force_original_aspect_ratio=increase,crop=1280:720" \
+              -c:v libx264 -pix_fmt yuv420p -c:a aac -shortest "ready/video_$i.mp4"
+              i=$((i+1)) 
+
+            # KASUS: VIDEO + AUDIO (Voice Over)
+            elif [ "$is_vid" == "yes" ] && [ "$is_next_aud" == "yes" ]; then
+              ffmpeg -y -i "$f" -i "$next_f" \
+              -vf "scale=1280:720:force_original_aspect_ratio=increase,crop=1280:720" \
+              -c:v libx264 -pix_fmt yuv420p -c:a aac -map 0:v:0 -map 1:a:0 -shortest "ready/video_$i.mp4"
+              i=$((i+1))
+
+            # KASUS: AUDIO SAJA (Buat layar hitam)
+            elif [[ "$(file --mime-type -b "$f")" == audio/* ]]; then
+              ffmpeg -y -f lavfi -i color=c=black:s=1280x720:d=5 -i "$f" \
+              -c:v libx264 -pix_fmt yuv420p -c:a aac -shortest "ready/video_$i.mp4"
+            
+            # KASUS: VIDEO SAJA (Tanpa pasangan)
             else
-                # VIDEO SAJA
-                ffmpeg -y -i "downloads/raw_$i" \
-                -vf "scale=1280:720:force_original_aspect_ratio=increase,crop=1280:720" \
-                -c:v libx264 -pix_fmt yuv420p -c:a aac -ar 44100 "ready/video_$i.mp4"
+              ffmpeg -y -i "$f" \
+              -vf "scale=1280:720:force_original_aspect_ratio=increase,crop=1280:720" \
+              -c:v libx264 -pix_fmt yuv420p -c:a aac -ar 44100 "ready/video_$i.mp4"
             fi
           done
 
       - name: Merge Final
         run: |
-          find ready -name "video_*.mp4" | sort | sed "s/^/file '&'/" > list.txt
+          # 3. Gabungkan semua hasil
+          find ready -name "video_*.mp4" | sort -V | sed "s/^/file '&'/" > list.txt
           ffmpeg -f concat -safe 0 -i list.txt -c copy output.mp4
 
       - name: Upload Artifact
