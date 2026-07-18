@@ -1,10 +1,10 @@
-name: AUTO MERGE WITH AUDIO DRIVE DAN FILEBIN
+name: AUTO MERGE UNIVERSAL (DRIVE/MEGA)
 
 on:
   workflow_dispatch:
     inputs:
       urls:
-        description: 'Masukkan URL berurutan (contoh: foto1 audio1 foto2 audio2)'
+        description: 'Masukkan URL dipisah koma (contoh: video1,audio1,video2,audio2)'
         required: true
         type: textarea
 
@@ -12,41 +12,40 @@ jobs:
   proses:
     runs-on: ubuntu-latest
     steps:
-      - name: Setup & Download
+      - name: Setup
         run: |
-          sudo apt-get update && sudo apt-get install -y ffmpeg
+          sudo apt-get update && sudo apt-get install -y ffmpeg megatools
           pip install gdown
           mkdir -p downloads ready
-          
-          # Unduh semua file
-          CLEAN_URLS=$(echo "${{ github.event.inputs.urls }}" | tr ',' ' ')
+
+      - name: Download & Normalize
+        run: |
+          # Ubah koma jadi spasi untuk perulangan
+          URLS=$(echo "${{ github.event.inputs.urls }}" | tr ',' ' ')
           count=1
-          for url in $CLEAN_URLS; do
-            if [[ "$url" == *"drive.google.com"* ]]; then
-              gdown "$url" -O "downloads/in_$count"
+          
+          for url in $URLS; do
+            # 1. Download
+            if [[ "$url" == *"mega.nz"* ]]; then
+              megadl "$url" --path "downloads/raw_$count"
             else
-              curl -L "$url" -o "downloads/in_$count"
+              gdown "$url" -O "downloads/raw_$count"
             fi
+            
+            # 2. Normalisasi (Agar saat digabung tidak korup)
+            # Mengubah semua file ke standar 1280x720, AAC, H264
+            ffmpeg -y -i "downloads/raw_$count" \
+            -vf "scale=1280:720:force_original_aspect_ratio=increase,crop=1280:720" \
+            -c:v libx264 -pix_fmt yuv420p -c:a aac -shortest "ready/video_$count.mp4"
+            
             count=$((count + 1))
           done
 
-          # PROSES BERPASANGAN (Foto + Audio)
-          # Loop dengan langkah 2 (i=foto, i+1=audio)
-          i=1
-          j=1
-          while [ -f "downloads/in_$i" ]; do
-            # Jika itu gambar, ambil audio dari file berikutnya
-            # Perintah: gabungkan foto (1 menit) dengan audio dari file berikutnya
-            ffmpeg -y -loop 1 -t 60 -i "downloads/in_$i" -i "downloads/in_$((i+1))" \
-            -vf "scale=1280:720:force_original_aspect_ratio=increase,crop=1280:720" \
-            -c:v libx264 -pix_fmt yuv420p -c:a aac -shortest "ready/video_$j.mp4"
-            
-            i=$((i + 2))
-            j=$((j + 1))
-          done
-          
-          # Gabungkan hasil
-          for f in $(ls -v ready/video_*.mp4); do echo "file '$f'" >> list.txt; done
+      - name: Merge
+        run: |
+          # Buat list
+          for f in $(ls -v ready/video_*.mp4); do echo "file '$(pwd)/$f'" >> list.txt; done
+          # Gabung
           ffmpeg -f concat -safe 0 -i list.txt -c copy output.mp4
 
       - name: Upload
