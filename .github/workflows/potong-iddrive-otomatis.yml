@@ -1,10 +1,10 @@
-name: AUTO SYNC VIDEO AUDIO DRIVE DAN MEGA IO
+name: AUTO MERGE DRIVE DAN MEGA IO
 
 on:
   workflow_dispatch:
     inputs:
       urls:
-        description: 'Masukkan URL (contoh: foto1,audio1,video2,audio2)'
+        description: 'Masukkan URL (Pisahkan dengan koma)'
         required: true
         type: textarea
 
@@ -18,43 +18,24 @@ jobs:
           pip install gdown
           mkdir -p downloads ready
 
-      - name: Download & Sync
+      - name: Download & Normalize
         run: |
           URLS=$(echo "${{ github.event.inputs.urls }}" | tr ',' ' ')
-          i=1
-          j=1
-          set -- $URLS
-          
-          # Proses berpasangan (input 1 & 2, input 3 & 4)
-          while [ -n "$1" ]; do
-            # Download file
-            for url in "$1" "$2"; do
-              if [ -n "$url" ]; then
-                if [[ "$url" == *"mega.nz"* ]]; then
-                  megadl "$url" --path "downloads/raw_$i"
-                else
-                  gdown "$url" -O "downloads/raw_$i"
-                fi
-                i=$((i+1))
-              fi
-            done
-
-            # LOGIKA SYNC:
-            # Jika ada dua file (pasangan), gabungkan dengan durasi mengikuti audio
-            if [ -f "downloads/raw_$((i-1))" ] && [ -f "downloads/raw_$((i-2))" ]; then
-              # Gunakan file kedua (audio) sebagai acuan durasi
-              ffmpeg -y -stream_loop -1 -i "downloads/raw_$((i-2))" -i "downloads/raw_$((i-1))" \
-              -vf "scale=1280:720:force_original_aspect_ratio=increase,crop=1280:720" \
-              -c:v libx264 -pix_fmt yuv420p -c:a aac -shortest "ready/video_$j.mp4"
+          count=1
+          for url in $URLS; do
+            # Download
+            if [[ "$url" == *"mega.nz"* ]]; then
+              megadl "$url" --path "downloads/file_$count"
             else
-              # Jika hanya 1 file (video tanpa audio), langsung normalisasi
-              ffmpeg -y -i "downloads/raw_$((i-1))" \
-              -vf "scale=1280:720:force_original_aspect_ratio=increase,crop=1280:720" \
-              -c:v libx264 -pix_fmt yuv420p -c:a aac "ready/video_$j.mp4"
+              gdown "$url" -O "downloads/file_$count"
             fi
             
-            j=$((j+1))
-            shift 2
+            # Normalisasi ke MP4 standar
+            ffmpeg -y -i "downloads/file_$count" \
+            -vf "scale=1280:720:force_original_aspect_ratio=increase,crop=1280:720" \
+            -c:v libx264 -pix_fmt yuv420p -c:a aac -ar 44100 "ready/video_$count.mp4"
+            
+            count=$((count + 1))
           done
 
       - name: Merge Final
@@ -67,4 +48,3 @@ jobs:
         with:
           name: final-video
           path: output.mp4
-          
