@@ -23,10 +23,9 @@ jobs:
           URLS=$(echo "${{ github.event.inputs.urls }}" | tr ',' ' ')
           arr=($URLS)
           
-          # Proses semua file satu per satu
           for (( i=0; i<${#arr[@]}; i++ )); do
-            # Download file ke-i
             url=${arr[$i]}
+            # Download file ke-i
             if [ -n "$url" ]; then
               if [[ "$url" == *"mega.nz"* ]]; then
                 megadl "$url" --path "downloads/raw_$i"
@@ -35,20 +34,19 @@ jobs:
               fi
             fi
 
-            # Deteksi: Apakah ini IMAGE dan file berikutnya AUDIO?
-            # Gunakan logika Image+Audio yang sudah benar (tetap tidak diubah)
+            # Deteksi apakah file ini IMAGE
             is_image=$(file --mime-type "downloads/raw_$i" | grep -q "image/" && echo "yes" || echo "no")
             
+            # Jika Image dan ada file berikutnya (Audio), gunakan logika Image+Audio
             if [ "$is_image" == "yes" ] && [ $((i+1)) -lt ${#arr[@]} ]; then
-                # BAGIAN IMAGE+AUDIO (TIDAK DIRUBAH - Sudah benar)
                 ffmpeg -y -loop 1 -i "downloads/raw_$i" -i "downloads/raw_$((i+1))" \
-                -vf "scale=1280:720:force_original_aspect_ratio=increase,crop=1280:720" \
+                -vf "scale=1280:720:force_original_aspect_ratio=increase,crop=1280: sz 1280:720" \
                 -c:v libx264 -pix_fmt yuv420p -c:a aac -shortest "ready/video_$i.mp4"
                 
-                # Loncat 1 karena audio sudah terpakai
+                # Lompat index karena audio sudah dipakai
                 i=$((i+1))
             else
-                # BAGIAN VIDEO (Perbaikan agar Video1 dan Video2 tidak tertukar/gagal)
+                # Jika Video atau file tunggal, proses standar (Tanpa -shortest)
                 ffmpeg -y -i "downloads/raw_$i" \
                 -vf "scale=1280:720:force_original_aspect_ratio=increase,crop=1280:720" \
                 -c:v libx264 -pix_fmt yuv420p -c:a aac -ar 44100 "ready/video_$i.mp4"
@@ -57,6 +55,7 @@ jobs:
 
       - name: Merge Final
         run: |
+          # Menggabungkan semua hasil dari folder 'ready'
           find ready -name "video_*.mp4" | sort | sed "s/^/file '&'/" > list.txt
           ffmpeg -f concat -safe 0 -i list.txt -c copy output.mp4
 
