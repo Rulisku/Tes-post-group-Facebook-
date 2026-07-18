@@ -4,7 +4,7 @@ on:
   workflow_dispatch:
     inputs:
       urls:
-        description: 'Masukkan URL (Google Drive/Filebin/Lainnya) pisahkan dengan koma'
+        description: 'Masukkan URL (Drive/Filebin) pisahkan dengan koma atau spasi'
         required: true
         type: textarea
 
@@ -15,57 +15,47 @@ jobs:
       - name: Setup & Download
         run: |
           sudo apt-get update && sudo apt-get install -y ffmpeg
-          # Install yt-dlp terbaru
           sudo curl -L https://github.com/yt-dlp/yt-dlp/releases/latest/download/yt-dlp -o /usr/local/bin/yt-dlp
           sudo chmod a+rx /usr/local/bin/yt-dlp
           pip install gdown
-          mkdir -p downloads
+          mkdir -p downloads ready
           
-          # Mengubah koma menjadi baris baru agar terbaca per item
-          INPUT_URLS=$(echo "${{ github.event.inputs.urls }}" | tr ',' '\n')
+          # Bersihkan input dan proses download
+          CLEAN_URLS=$(echo "${{ github.event.inputs.urls }}" | tr ',' ' ')
           
           count=1
-          while IFS= read -r url || [ -n "$url" ]; do
-            url=$(echo "$url" | xargs)
-            [ -z "$url" ] && continue
-            
-            echo "Memproses link: $url"
-            
+          for url in $CLEAN_URLS; do
+            echo "Memproses file ke-$count..."
+            # Cek jika Google Drive, gunakan gdown (metode potong ID Anda)
             if [[ "$url" == *"drive.google.com"* ]]; then
-               echo "Mengunduh via gdown (Google Drive)..."
-               gdown "$url" -O "downloads/file_$count.mp4"
-            elif [[ "$url" == *"filebin.net"* ]]; then
-               echo "Mengunduh via yt-dlp/curl (Filebin)..."
-               # Coba yt-dlp, jika gagal gunakan curl untuk mengambil file mentah
-               yt-dlp --no-check-certificate --ignore-errors -o "downloads/file_$count.%(ext)s" "$url" || curl -L "$url" -o "downloads/file_$count.tmp"
-               
-               # Jika file .tmp ada (berarti curl berhasil), ubah ekstensinya agar bisa dibaca ffmpeg
-               if [ -f "downloads/file_$count.tmp" ]; then
-                 mv "downloads/file_$count.tmp" "downloads/file_$count.mp3"
-               fi
+              gdown "$url" -O "downloads/temp_$count.mp4"
             else
-               echo "Mengunduh via yt-dlp (Lainnya)..."
-               yt-dlp --no-check-certificate --ignore-errors -o "downloads/file_$count.%(ext)s" "$url"
+              # Jika Filebin/Link lain, gunakan yt-dlp
+              yt-dlp --no-check-certificate -o "downloads/temp_$count.%(ext)s" "$url"
             fi
-            
             count=$((count + 1))
-          done <<< "$INPUT_URLS"
-          
-          # Membuat list untuk FFmpeg agar bisa menggabungkan berbagai format
-          for f in downloads/*; do 
-            echo "file '$(pwd)/$f'" >> downloads/list.txt
           done
           
-          echo "Daftar file yang akan digabung:"
-          cat downloads/list.txt
+          # NORMALISASI: Jadikan semua format (.mp3, .jpg, dll) menjadi .mp4 yang seragam
+          for f in downloads/*; do
+            echo "Menyamakan format: $f"
+            # -preset ultrafast membuat proses ini sangat cepat
+            ffmpeg -i "$f" -c:v libx264 -preset ultrafast -c:a aac -pix_fmt yuv420p -y "ready/$(basename "$f").mp4"
+          done
+          
+          # Buat list dari file yang sudah seragam
+          for f in ready/*.mp4; do 
+            echo "file '$(pwd)/$f'" >> list.txt
+          done
 
       - name: Merge Video
         run: |
-          echo "Menggabungkan file tanpa re-encode"
-          ffmpeg -f concat -safe 0 -i downloads/list.txt -c copy output.mp4
+          # Sekarang aman menggunakan -c copy
+          ffmpeg -f concat -safe 0 -i list.txt -c copy output.mp4
 
       - name: Upload Artifact
         uses: actions/upload-artifact@v4
         with:
           name: final-video
           path: output.mp4
+          
