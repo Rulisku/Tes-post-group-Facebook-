@@ -2,8 +2,8 @@ name: Render Video Otomatis
 
 on:
   workflow_dispatch: # Bisa dijalankan manual
-  schedule:
-    - cron: '0 * * * *' # Jalankan otomatis setiap jam
+  #schedule:
+#    - cron: '0 * * * *' # Jalankan otomatis setiap jam
 
 jobs:
   render:
