@@ -1,10 +1,10 @@
-name: AUTO POTONG ID DRIVE TO MERGE
+name: AUTO MERGE DRIVE & FILEBIN
 
 on:
   workflow_dispatch:
     inputs:
       urls:
-        description: 'Masukkan URL Google Drive (pisahkan dengan spasi atau koma)'
+        description: 'Masukkan URL (Drive atau Filebin, pisahkan dengan spasi/koma)'
         required: true
         type: textarea
 
@@ -18,33 +18,42 @@ jobs:
           pip install gdown
           mkdir -p downloads
           
-          # Bersihkan input dan proses download
+          # Bersihkan input (mengganti koma dengan spasi)
           CLEAN_URLS=$(echo "${{ github.event.inputs.urls }}" | tr ',' ' ')
           
           count=1
           for url in $CLEAN_URLS; do
-            echo "Mengunduh file ke-$count..."
-            gdown "$url" -O "downloads/video_$count.mp4"
+            echo "Memproses link: $url"
+            
+            # Deteksi apakah URL dari Google Drive atau Filebin
+            if [[ "$url" == *"drive.google.com"* ]]; then
+              echo "Mengunduh via gdown (Google Drive)..."
+              gdown "$url" -O "downloads/file_$count.mp4"
+            else
+              echo "Mengunduh via curl (Filebin/Direct Link)..."
+              curl -L "$url" -o "downloads/file_$count.mp4"
+            fi
+            
             count=$((count + 1))
           done
           
-          # Cek apakah file benar-benar ada
-          ls -lh downloads/
-          
-          # Buat list untuk FFmpeg dengan path absolut
-          # $(pwd) memastikan path mengarah ke lokasi file yang benar
-          for f in downloads/*.mp4; do 
+          # Membuat list untuk FFmpeg (diurutkan berdasarkan nama)
+          # Menggunakan $(pwd) untuk path absolut agar FFmpeg tidak error
+          for f in $(ls -v downloads/file_*); do 
             echo "file '$(pwd)/$f'" >> downloads/list.txt
           done
+          
+          echo "Daftar file yang akan digabung:"
+          cat downloads/list.txt
 
       - name: Merge Video
         run: |
-          # 5. Gabungkan tanpa re-encode (-c copy)
-          # -safe 0 diperlukan jika path mengandung karakter khusus
+          # Menggabungkan file tanpa re-encode
           ffmpeg -f concat -safe 0 -i downloads/list.txt -c copy output.mp4
 
       - name: Upload Artifact
         uses: actions/upload-artifact@v4
         with:
-          name: final-video
+          name: final-merged-video
           path: output.mp4
+          
