@@ -14,7 +14,7 @@ jobs:
     steps:
       - name: Setup & Download
         run: |
-          sudo apt-get update && sudo apt-get install -y ffmpeg jq
+          sudo apt-get update && sudo apt-get install -y ffmpeg
           pip install gdown
           mkdir -p downloads
           
@@ -26,22 +26,22 @@ jobs:
             echo "Memproses file ke-$count: $url"
             
             if [[ "$url" == *"gofile.io"* ]]; then
-              # Logic khusus untuk GoFile
-              echo "Mendeteksi GoFile, mengambil direct link..."
-              DIRECT_URL=$(wget -qO- "$url" | grep -o 'https://store[0-9]\+.gofile.io/download/[^"]*' | head -n 1)
-              if [ -z "$DIRECT_URL" ]; then
-                echo "Gagal mengambil link dari GoFile. Pastikan link publik!"
-                exit 1
-              fi
+              echo "Mendeteksi GoFile, mengambil via API..."
+              FILE_ID=$(echo "$url" | awk -F'/d/' '{print $2}')
+              
+              # Mengambil data file via API GoFile
+              # Kita ambil link download langsung dari struktur JSON
+              DIRECT_URL=$(curl -s "https://api.gofile.io/getContent?contentId=$FILE_ID" | python3 -c "import sys, json; data=json.load(sys.stdin); print(list(data['data']['contents'].values())[0]['downloadPage'])")
+              
+              # Download file tersebut
               curl -L "$DIRECT_URL" -o "downloads/file_$count.mp4"
               
             elif [[ "$url" == *"drive.google.com"* ]]; then
-              # Logic khusus untuk Google Drive
               echo "Mendeteksi Google Drive..."
               gdown "$url" -O "downloads/file_$count.mp4"
               
             else
-              # Fallback untuk link direct lainnya
+              echo "Link direct biasa..."
               curl -L "$url" -o "downloads/file_$count.mp4"
             fi
             
@@ -50,14 +50,15 @@ jobs:
           
           ls -lh downloads/
           
-          # Buat list untuk FFmpeg (semua file di folder downloads)
-          for f in downloads/*; do 
+          # Buat list untuk FFmpeg
+          # Mengurutkan file agar urutan merge sesuai dengan urutan input
+          for f in $(ls -v downloads/file_*); do 
             echo "file '$(pwd)/$f'" >> downloads/list.txt
           done
 
       - name: Merge Video
         run: |
-          # Gabungkan semua file yang ada di list.txt
+          # Gabungkan file
           ffmpeg -f concat -safe 0 -i downloads/list.txt -c copy output.mp4
 
       - name: Upload Artifact
@@ -65,4 +66,3 @@ jobs:
         with:
           name: final-video
           path: output.mp4
-          
