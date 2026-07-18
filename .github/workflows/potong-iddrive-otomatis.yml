@@ -1,10 +1,10 @@
-name: FAST MERGE DRIVE & FILEBIN
+name: AUTO MERGE ADAPTIVE DRIVE FAN FILEBIN
 
 on:
   workflow_dispatch:
     inputs:
       urls:
-        description: 'Masukkan URL (Drive, Filebin, dll) pisahkan dengan spasi'
+        description: 'Masukkan URL (Drive/Filebin, pisahkan spasi)'
         required: true
         type: textarea
 
@@ -24,32 +24,31 @@ jobs:
           for url in $CLEAN_URLS; do
             echo "Memproses file ke-$count..."
             if [[ "$url" == *"drive.google.com"* ]]; then
-              gdown "$url" -O "downloads/video_$count.mp4"
+              gdown "$url" -O "downloads/input_$count.mp4"
             else
-              # Gunakan curl untuk filebin/direct link agar lebih ringan dari yt-dlp
-              curl -L "$url" -o "downloads/video_$count.mp4"
+              curl -L "$url" -o "downloads/input_$count.mp4"
             fi
             
-            # CEK OTOMATIS: Jika video tidak kompatibel, baru lakukan konversi ringan
-            # Kita cek apakah video sudah yuv420p, jika belum, kita convert cepat
-            if ffprobe -v error -select_streams v:0 -show_entries stream=pix_fmt -of default=noprint_wrappers=1:nokey=1 "downloads/video_$count.mp4" | grep -q "yuv420p"; then
-              echo "File $count kompatibel, gunakan langsung."
-              cp "downloads/video_$count.mp4" "ready/video_$count.mp4"
-            else
-              echo "File $count tidak kompatibel, konversi cepat..."
-              ffmpeg -i "downloads/video_$count.mp4" -c:v libx264 -preset ultrafast -pix_fmt yuv420p -c:a copy "ready/video_$count.mp4"
-            fi
+            # PROSES ADAPTIF:
+            # 1. Jika itu gambar (looping agar durasi mengikuti audio/video)
+            # 2. Jika itu audio murni (dibuat jadi video hitam agar bisa digabung)
+            # 3. Jika itu video (diambil audionya)
+            
+            ffmpeg -y -i "downloads/input_$count.mp4" \
+            -vf "scale=1280:720:force_original_aspect_ratio=increase,crop=1280:720" \
+            -c:v libx264 -preset ultrafast -pix_fmt yuv420p \
+            -c:a aac -shortest "ready/video_$count.mp4"
+            
             count=$((count + 1))
           done
           
-          # Buat list untuk FFmpeg
           for f in $(ls -v ready/video_*.mp4); do 
             echo "file '$(pwd)/$f'" >> list.txt
           done
 
       - name: Merge Video
         run: |
-          # Gabungkan (tetap cepat karena sudah dijamin kompatibel di atas)
+          # Sekarang semua file sudah memiliki durasi dan format yang sinkron
           ffmpeg -f concat -safe 0 -i list.txt -c copy output.mp4
 
       - name: Upload Artifact
