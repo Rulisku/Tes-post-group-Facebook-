@@ -4,7 +4,7 @@ on:
   workflow_dispatch:
     inputs:
       urls:
-        description: 'Masukkan URL (Drive atau Filebin, pisahkan dengan spasi/koma)'
+        description: 'Masukkan URL (Google Drive/Filebin/Lainnya) per baris'
         required: true
         type: textarea
 
@@ -15,31 +15,36 @@ jobs:
       - name: Setup & Download
         run: |
           sudo apt-get update && sudo apt-get install -y ffmpeg
+          # Install yt-dlp terbaru untuk menangani Filebin dan ribuan situs lainnya
+          sudo curl -L https://github.com/yt-dlp/yt-dlp/releases/latest/download/yt-dlp -o /usr/local/bin/yt-dlp
+          sudo chmod a+rx /usr/local/bin/yt-dlp
           pip install gdown
           mkdir -p downloads
           
-          # Bersihkan input (mengganti koma dengan spasi)
-          CLEAN_URLS=$(echo "${{ github.event.inputs.urls }}" | tr ',' ' ')
+          # Memproses input per baris
+          IFS=$'\n' read -d '' -ra URLS <<< "${{ github.event.inputs.urls }}"
           
           count=1
-          for url in $CLEAN_URLS; do
+          for url in "${URLS[@]}"; do
+            # Hapus spasi kosong dari URL
+            url=$(echo "$url" | xargs)
+            [ -z "$url" ] && continue
+            
             echo "Memproses link: $url"
             
-            # Deteksi apakah URL dari Google Drive atau Filebin
             if [[ "$url" == *"drive.google.com"* ]]; then
-              echo "Mengunduh via gdown (Google Drive)..."
-              gdown "$url" -O "downloads/file_$count.mp4"
+               echo "Mengunduh via gdown (Google Drive)..."
+               gdown "$url" -O "downloads/file_$count.mp4"
             else
-              echo "Mengunduh via curl (Filebin/Direct Link)..."
-              curl -L "$url" -o "downloads/file_$count.mp4"
+               echo "Mengunduh via yt-dlp (Filebin/Direct Link)..."
+               yt-dlp -o "downloads/file_$count.mp4" "$url"
             fi
             
             count=$((count + 1))
           done
           
-          # Membuat list untuk FFmpeg (diurutkan berdasarkan nama)
-          # Menggunakan $(pwd) untuk path absolut agar FFmpeg tidak error
-          for f in $(ls -v downloads/file_*); do 
+          # Membuat list untuk FFmpeg
+          for f in downloads/*.mp4; do 
             echo "file '$(pwd)/$f'" >> downloads/list.txt
           done
           
@@ -48,12 +53,12 @@ jobs:
 
       - name: Merge Video
         run: |
-          # Menggabungkan file tanpa re-encode
+          echo "Menggabungkan file tanpa re-encode"
           ffmpeg -f concat -safe 0 -i downloads/list.txt -c copy output.mp4
 
       - name: Upload Artifact
         uses: actions/upload-artifact@v4
         with:
-          name: final-merged-video
+          name: final-video
           path: output.mp4
           
