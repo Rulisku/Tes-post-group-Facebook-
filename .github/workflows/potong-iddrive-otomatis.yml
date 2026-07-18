@@ -4,7 +4,7 @@ on:
   workflow_dispatch:
     inputs:
       urls:
-        description: 'Masukkan URL Google Drive (pisahkan dengan spasi atau koma)'
+        description: 'Masukkan URL (Google Drive atau GoFile) pisahkan dengan spasi'
         required: true
         type: textarea
 
@@ -14,33 +14,50 @@ jobs:
     steps:
       - name: Setup & Download
         run: |
-          sudo apt-get update && sudo apt-get install -y ffmpeg
+          sudo apt-get update && sudo apt-get install -y ffmpeg jq
           pip install gdown
           mkdir -p downloads
           
-          # Bersihkan input dan proses download
-          CLEAN_URLS=$(echo "${{ github.event.inputs.urls }}" | tr ',' ' ')
+          # Bersihkan input
+          CLEAN_URLS=$(echo "${{ github.event.inputs.urls }}" | tr ',' ' ' | tr '\n' ' ')
           
           count=1
           for url in $CLEAN_URLS; do
-            echo "Mengunduh file ke-$count..."
-            gdown "$url" -O "downloads/video_$count.mp4"
+            echo "Memproses file ke-$count: $url"
+            
+            if [[ "$url" == *"gofile.io"* ]]; then
+              # Logic khusus untuk GoFile
+              echo "Mendeteksi GoFile, mengambil direct link..."
+              DIRECT_URL=$(wget -qO- "$url" | grep -o 'https://store[0-9]\+.gofile.io/download/[^"]*' | head -n 1)
+              if [ -z "$DIRECT_URL" ]; then
+                echo "Gagal mengambil link dari GoFile. Pastikan link publik!"
+                exit 1
+              fi
+              curl -L "$DIRECT_URL" -o "downloads/file_$count.mp4"
+              
+            elif [[ "$url" == *"drive.google.com"* ]]; then
+              # Logic khusus untuk Google Drive
+              echo "Mendeteksi Google Drive..."
+              gdown "$url" -O "downloads/file_$count.mp4"
+              
+            else
+              # Fallback untuk link direct lainnya
+              curl -L "$url" -o "downloads/file_$count.mp4"
+            fi
+            
             count=$((count + 1))
           done
           
-          # Cek apakah file benar-benar ada
           ls -lh downloads/
           
-          # Buat list untuk FFmpeg dengan path absolut
-          # $(pwd) memastikan path mengarah ke lokasi file yang benar
-          for f in downloads/*.mp4; do 
+          # Buat list untuk FFmpeg (semua file di folder downloads)
+          for f in downloads/*; do 
             echo "file '$(pwd)/$f'" >> downloads/list.txt
           done
 
       - name: Merge Video
         run: |
-          # 5. Gabungkan tanpa re-encode (-c copy)
-          # -safe 0 diperlukan jika path mengandung karakter khusus
+          # Gabungkan semua file yang ada di list.txt
           ffmpeg -f concat -safe 0 -i downloads/list.txt -c copy output.mp4
 
       - name: Upload Artifact
@@ -48,3 +65,4 @@ jobs:
         with:
           name: final-video
           path: output.mp4
+          
