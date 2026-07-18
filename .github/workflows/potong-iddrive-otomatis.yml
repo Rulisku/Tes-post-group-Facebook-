@@ -23,39 +23,35 @@ jobs:
           URLS=$(echo "${{ github.event.inputs.urls }}" | tr ',' ' ')
           arr=($URLS)
           
-          for (( i=0; i<${#arr[@]}; i+=2 )); do
-            # Download pasangan
-            for j in 0 1; do
-              idx=$((i+j))
-              url=${arr[$idx]}
-              if [ -n "$url" ]; then
-                if [[ "$url" == *"mega.nz"* ]]; then
-                  megadl "$url" --path "downloads/raw_$idx"
-                else
-                  gdown "$url" -O "downloads/raw_$idx"
-                fi
+          # Proses semua file satu per satu
+          for (( i=0; i<${#arr[@]}; i++ )); do
+            # Download file ke-i
+            url=${arr[$i]}
+            if [ -n "$url" ]; then
+              if [[ "$url" == *"mega.nz"* ]]; then
+                megadl "$url" --path "downloads/raw_$i"
+              else
+                gdown "$url" -O "downloads/raw_$i"
               fi
-            done
+            fi
 
-            # Proses jika ada pasangan
-            if [ -f "downloads/raw_$((i+1))" ]; then
-              # Jika File 1 adalah IMAGE (Pakai -shortest)
-              if file --mime-type "downloads/raw_$i" | grep -q "image/"; then
+            # Deteksi: Apakah ini IMAGE dan file berikutnya AUDIO?
+            # Gunakan logika Image+Audio yang sudah benar (tetap tidak diubah)
+            is_image=$(file --mime-type "downloads/raw_$i" | grep -q "image/" && echo "yes" || echo "no")
+            
+            if [ "$is_image" == "yes" ] && [ $((i+1)) -lt ${#arr[@]} ]; then
+                # BAGIAN IMAGE+AUDIO (TIDAK DIRUBAH - Sudah benar)
                 ffmpeg -y -loop 1 -i "downloads/raw_$i" -i "downloads/raw_$((i+1))" \
                 -vf "scale=1280:720:force_original_aspect_ratio=increase,crop=1280:720" \
                 -c:v libx264 -pix_fmt yuv420p -c:a aac -shortest "ready/video_$i.mp4"
-              
-              # Jika File 1 adalah VIDEO (Tanpa -shortest agar durasi asli terjaga)
-              else
-                ffmpeg -y -i "downloads/raw_$i" -i "downloads/raw_$((i+1))" \
+                
+                # Loncat 1 karena audio sudah terpakai
+                i=$((i+1))
+            else
+                # BAGIAN VIDEO (Perbaikan agar Video1 dan Video2 tidak tertukar/gagal)
+                ffmpeg -y -i "downloads/raw_$i" \
                 -vf "scale=1280:720:force_original_aspect_ratio=increase,crop=1280:720" \
                 -c:v libx264 -pix_fmt yuv420p -c:a aac -ar 44100 "ready/video_$i.mp4"
-              fi
-            else
-              # Jika hanya 1 file (Video tunggal)
-              ffmpeg -y -i "downloads/raw_$i" \
-              -vf "scale=1280:720:force_original_aspect_ratio=increase,crop=1280:720" \
-              -c:v libx264 -pix_fmt yuv420p -c:a aac "ready/video_$i.mp4"
             fi
           done
 
@@ -69,4 +65,3 @@ jobs:
         with:
           name: final-video
           path: output.mp4
-          
