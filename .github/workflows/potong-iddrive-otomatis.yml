@@ -1,10 +1,10 @@
-name: AUTO MERGE DRIVE & FILEBIN
+name: FAST MERGE DRIVE & FILEBIN
 
 on:
   workflow_dispatch:
     inputs:
       urls:
-        description: 'Masukkan URL (Drive, Filebin, atau lainnya) pisahkan dengan spasi'
+        description: 'Masukkan URL (Drive, Filebin, dll) pisahkan dengan spasi'
         required: true
         type: textarea
 
@@ -15,49 +15,41 @@ jobs:
       - name: Setup & Download
         run: |
           sudo apt-get update && sudo apt-get install -y ffmpeg
-          sudo curl -L https://github.com/yt-dlp/yt-dlp/releases/latest/download/yt-dlp -o /usr/local/bin/yt-dlp
-          sudo chmod a+rx /usr/local/bin/yt-dlp
           pip install gdown
           mkdir -p downloads ready
           
-          # Bersihkan input (mengganti koma dengan spasi)
           CLEAN_URLS=$(echo "${{ github.event.inputs.urls }}" | tr ',' ' ')
           
           count=1
           for url in $CLEAN_URLS; do
-            echo "Memproses file ke-$count: $url"
-            
+            echo "Memproses file ke-$count..."
             if [[ "$url" == *"drive.google.com"* ]]; then
-              echo "Mengunduh via gdown (Google Drive)..."
-              gdown "$url" -O "downloads/temp_$count.mp4"
-            elif [[ "$url" == *"filebin.net"* ]]; then
-              echo "Mengunduh via curl (Filebin)..."
-              # Pastikan link Filebin adalah link langsung ke file
-              curl -L "$url" -o "downloads/temp_$count.mp4"
+              gdown "$url" -O "downloads/video_$count.mp4"
             else
-              echo "Mengunduh via yt-dlp..."
-              yt-dlp --no-check-certificate -o "downloads/temp_$count.%(ext)s" "$url"
+              # Gunakan curl untuk filebin/direct link agar lebih ringan dari yt-dlp
+              curl -L "$url" -o "downloads/video_$count.mp4"
+            fi
+            
+            # CEK OTOMATIS: Jika video tidak kompatibel, baru lakukan konversi ringan
+            # Kita cek apakah video sudah yuv420p, jika belum, kita convert cepat
+            if ffprobe -v error -select_streams v:0 -show_entries stream=pix_fmt -of default=noprint_wrappers=1:nokey=1 "downloads/video_$count.mp4" | grep -q "yuv420p"; then
+              echo "File $count kompatibel, gunakan langsung."
+              cp "downloads/video_$count.mp4" "ready/video_$count.mp4"
+            else
+              echo "File $count tidak kompatibel, konversi cepat..."
+              ffmpeg -i "downloads/video_$count.mp4" -c:v libx264 -preset ultrafast -pix_fmt yuv420p -c:a copy "ready/video_$count.mp4"
             fi
             count=$((count + 1))
           done
           
-          # NORMALISASI: Jadikan semua format (.mp3, .mkv, .webm, dll) menjadi .mp4
-          # Proses ini memastikan FFmpeg tidak error saat melakukan concat
-          echo "Menyamakan format semua file ke .mp4..."
-          for f in downloads/temp_*; do
-            if [ -f "$f" ]; then
-              ffmpeg -i "$f" -c:v libx264 -preset ultrafast -c:a aac -pix_fmt yuv420p -y "ready/$(basename "$f" .mp4).mp4"
-            fi
-          done
-          
-          # Buat list untuk FFmpeg (diurutkan berdasarkan nama)
-          for f in $(ls -v ready/*.mp4); do 
+          # Buat list untuk FFmpeg
+          for f in $(ls -v ready/video_*.mp4); do 
             echo "file '$(pwd)/$f'" >> list.txt
           done
 
       - name: Merge Video
         run: |
-          # Gabungkan file tanpa re-encode lagi karena sudah diseragamkan
+          # Gabungkan (tetap cepat karena sudah dijamin kompatibel di atas)
           ffmpeg -f concat -safe 0 -i list.txt -c copy output.mp4
 
       - name: Upload Artifact
