@@ -14,12 +14,14 @@ jobs:
     steps:
       - name: Setup & Download
         run: |
-          # Menginstal gpac untuk mendapatkan tool MP4Box yang super ringan
-          sudo apt-get update && sudo apt-get install -y ffmpeg megatools gpac
-          pip install gdown
+          # 1. Menghilangkan apt-get update dan menambahkan -qq agar instalasi instan
+          sudo apt-get install -y -qq ffmpeg megatools gpac bc
+          
+          # 2. Memakai --no-deps agar pip tidak membuang waktu mengunduh dependencies tambahan
+          pip install gdown --no-deps -q
+          
           mkdir -p downloads ready
           
-          # 1. Download dan Beri Ekstensi Otomatis
           URLS=$(echo "${{ github.event.inputs.urls }}" | tr ',' ' ')
           arr=($URLS)
           
@@ -31,10 +33,10 @@ jobs:
             if [[ "$url" == *"mega.nz"* ]]; then
               megadl "$url" --path "$output"
             else
-              gdown "$url" -O "$output"
+              # 3. Menambahkan --quiet agar log progress bar tidak membebani IO server
+              gdown "$url" -O "$output" --quiet
             fi
             
-            # Beri ekstensi agar FFmpeg mengenali formatnya di tahap berikutnya
             ext=$(file --mime-type -b "$output" | cut -d/ -f2 | sed 's/jpeg/jpg/')
             mv "$output" "$output.$ext"
           done
