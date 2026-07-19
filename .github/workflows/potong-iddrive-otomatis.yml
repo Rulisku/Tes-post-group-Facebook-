@@ -12,25 +12,16 @@ jobs:
   proses:
     runs-on: ubuntu-latest
     steps:
-      - name: Setup Tools & Download Fast
+      - name: Setup & Download
         run: |
-          mkdir -p downloads ready
+          # 1. Menghilangkan apt-get update dan menambahkan -qq agar instalasi instan
+          sudo apt-get install -y -qq ffmpeg megatools gpac bc
           
-          # 1. Download langsung file biner FFmpeg & FFprobe jadi (Tanpa perlu ekstrak tar/zip)
-          # Mengambil langsung biner siap pakai dari mirror build terpercaya
-          sudo wget -q -O /usr/local/bin/ffmpeg https://github.com
-          sudo wget -q -O /usr/local/bin/ffprobe https://github.com
-          
-          # Berikan izin akses eksekusi agar sistem bisa menjalankan perintah 'ffmpeg'
-          sudo chmod +x /usr/local/bin/ffmpeg /usr/local/bin/ffprobe
-          
-          # 2. Hanya menginstal gpac (MP4Box), megatools, dan bc secara paralel di background
-          sudo apt-get install -y -qq --no-install-recommends gpac megatools bc > /dev/null 2>&1 &
-          
-          # 3. Install gdown instan tanpa dependencies tambahan
+          # 2. Memakai --no-deps agar pip tidak membuang waktu mengunduh dependencies tambahan
           pip install gdown --no-deps -q
           
-          # 4. Proses Download Utama langsung berjalan bersamaan
+          mkdir -p downloads ready
+          
           URLS=$(echo "${{ github.event.inputs.urls }}" | tr ',' ' ')
           arr=($URLS)
           
@@ -40,23 +31,19 @@ jobs:
             
             output="downloads/raw_$i"
             if [[ "$url" == *"mega.nz"* ]]; then
-              # Pastikan instalasi megatools di background sudah selesai sebelum mendownload dari MEGA
-              wait
               megadl "$url" --path "$output"
             else
+              # 3. Menambahkan --quiet agar log progress bar tidak membebani IO server
               gdown "$url" -O "$output" --quiet
             fi
             
             ext=$(file --mime-type -b "$output" | cut -d/ -f2 | sed 's/jpeg/jpg/')
             mv "$output" "$output.$ext"
           done
-          
-          # Pastikan seluruh proses instalasi gpac di background selesai 100%
-          wait
 
       - name: Sync & Encode (Super Ringan & Hemat CPU)
         run: |
-          # 5. Proses penyamaan format dengan beban CPU seminimal mungkin
+          # 2. Proses penyamaan format dengan beban CPU seminimal mungkin
           files=($(ls downloads/raw_*.* | sort -V))
           num_files=${#files[@]}
           i=0
@@ -87,14 +74,14 @@ jobs:
               ffmpeg -y -loop 1 -i "$f" -i "$next_f" \
               -vf "scale=1280:720:force_original_aspect_ratio=decrease,pad=1280:720:(ow-iw)/2:(oh-ih)/2" \
               $FF_LIGHT -shortest "ready/video_$i.mp4"
-              i=$((i+2))
+              i=$((i+2)) # Lompat 2 file karena file audio pendamping sudah dipakai
 
             # KASUS B: VIDEO + AUDIO (Voice Over / Ganti Audio)
             elif [ $is_vid -eq 1 ] && [ $is_next_aud -eq 1 ]; then
               ffmpeg -y -i "$f" -i "$next_f" \
               -vf "scale=1280:720:force_original_aspect_ratio=decrease,pad=1280:720:(ow-iw)/2:(oh-ih)/2" \
               $FF_LIGHT -map 0:v:0 -map 1:a:0 -shortest "ready/video_$i.mp4"
-              i=$((i+2))
+              i=$((i+2)) # Lompat 2 file
 
             # KASUS C: AUDIO SAJA (Buat layar hitam default 5 detik)
             elif [ $is_aud -eq 1 ]; then
@@ -113,15 +100,17 @@ jobs:
 
       - name: Merge Final (Pakai MP4Box Instan)
         run: |
-          # 6. Menggabungkan semua klip MP4 secara instan tanpa membebani CPU
+          # 3. Menggabungkan semua klip MP4 secara instan tanpa membebani CPU
           files=($(ls ready/video_*.mp4 | sort -V))
           
+          # Membuat perintah MP4Box secara dinamis sesuai jumlah file yang ada
           cmd="MP4Box"
           for f in "${files[@]}"; do
             cmd="$cmd -cat \"$f\""
           done
           cmd="$cmd -new output.mp4"
           
+          # Eksekusi penggabungan struktur berkas MP4
           eval $cmd
 
       - name: Upload Artifact
@@ -129,3 +118,4 @@ jobs:
         with:
           name: final-video
           path: output.mp4
+          
