@@ -1,44 +1,565 @@
-<!-- index.html -->
-<script src="https://unpkg.com/@ffmpeg/ffmpeg@0.12.6/dist/umd/ffmpeg.js">
-</script>
+<!DOCTYPE html>
+<html lang="id">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Auto Merge Video</title>
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body {
+      font-family: 'Segoe UI', sans-serif;
+      background: #0f0f13;
+      color: #e8e8f0;
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      padding: 40px 16px;
+    }
+    h1 {
+      font-size: 2rem;
+      font-weight: 700;
+      background: linear-gradient(90deg, #a78bfa, #60a5fa);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      margin-bottom: 6px;
+      text-align: center;
+    }
+    .sub { color: #888; font-size: 0.9rem; margin-bottom: 32px; text-align: center; }
+    .card {
+      background: #1a1a24;
+      border: 1px solid #2a2a3a;
+      border-radius: 16px;
+      padding: 28px;
+      width: 100%;
+      max-width: 540px;
+    }
+    .drop-zone {
+      border: 2px dashed #3a3a5a;
+      border-radius: 12px;
+      padding: 36px 20px;
+      text-align: center;
+      cursor: pointer;
+      transition: border-color 0.2s, background 0.2s;
+      margin-bottom: 16px;
+    }
+    .drop-zone:hover, .drop-zone.dragover { border-color: #a78bfa; background: #1f1f30; }
+    .drop-zone input { display: none; }
+    .drop-icon { font-size: 2.2rem; margin-bottom: 8px; }
+    .drop-zone p { color: #888; font-size: 0.85rem; margin-top: 4px; }
+    .drop-zone strong { color: #a78bfa; font-size: 0.95rem; }
 
-<input type="file" id="files" multiple accept="video/*,audio/*,image/*">
-<button onclick="merge()">Merge!</button>
-<a id="download">Download</a>
+    /* File list */
+    #file-list { list-style: none; margin-bottom: 16px; display: flex; flex-direction: column; gap: 6px; }
+    #file-list li {
+      background: #12121a;
+      border: 1px solid #2a2a3a;
+      border-radius: 8px;
+      padding: 8px 12px;
+      font-size: 0.82rem;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      position: relative;
+      overflow: hidden;
+    }
+    #file-list li .file-progress-bg {
+      position: absolute;
+      left: 0; top: 0; bottom: 0;
+      background: rgba(124,58,237,0.13);
+      width: 0%;
+      transition: width 0.3s;
+      border-radius: 8px;
+      z-index: 0;
+    }
+    #file-list li .file-icon { font-size: 1.1rem; z-index: 1; }
+    #file-list li .file-name { flex: 1; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; z-index: 1; }
+    #file-list li .file-size { color: #555; font-size: 0.72rem; z-index: 1; white-space: nowrap; }
+    #file-list li .file-badge {
+      font-size: 0.68rem;
+      padding: 2px 6px;
+      border-radius: 99px;
+      background: #2a2a3a;
+      color: #888;
+      z-index: 1;
+      white-space: nowrap;
+    }
+    #file-list li .file-badge.done { background: #166534; color: #4ade80; }
+    #file-list li .file-badge.processing { background: #1e3a5f; color: #60a5fa; }
+    #file-list li .file-badge.waiting { background: #2a2a3a; color: #666; }
 
-<script>
-const { FFmpeg } = FFmpegWASM;
+    /* Status + progress */
+    .stage-label {
+      font-size: 0.78rem;
+      color: #888;
+      margin-bottom: 4px;
+      display: flex;
+      justify-content: space-between;
+    }
+    .stage-label span { color: #a78bfa; }
+    .progress-wrap { margin-bottom: 14px; display: none; }
+    .progress-track {
+      width: 100%;
+      height: 6px;
+      background: #2a2a3a;
+      border-radius: 99px;
+      overflow: hidden;
+    }
+    .progress-fill {
+      height: 100%;
+      background: linear-gradient(90deg, #7c3aed, #3b82f6);
+      width: 0%;
+      transition: width 0.4s ease;
+      border-radius: 99px;
+    }
+
+    /* Per-file progress */
+    .file-progress-wrap { margin-bottom: 14px; display: none; }
+    .file-progress-label { font-size: 0.75rem; color: #888; margin-bottom: 4px; }
+    .file-progress-track { width: 100%; height: 4px; background: #2a2a3a; border-radius: 99px; overflow: hidden; }
+    .file-progress-fill { height: 100%; background: #60a5fa; width: 0%; transition: width 0.2s; border-radius: 99px; }
+
+    #status {
+      font-size: 0.83rem;
+      color: #888;
+      text-align: center;
+      min-height: 18px;
+      margin-bottom: 12px;
+    }
+    #status.error { color: #f87171; }
+    #status.success { color: #4ade80; }
+
+    /* Buttons */
+    #btn-merge {
+      width: 100%;
+      padding: 13px;
+      background: linear-gradient(90deg, #7c3aed, #3b82f6);
+      color: white;
+      border: none;
+      border-radius: 10px;
+      font-size: 0.95rem;
+      font-weight: 600;
+      cursor: pointer;
+      transition: opacity 0.2s;
+      margin-bottom: 10px;
+    }
+    #btn-merge:hover { opacity: 0.9; }
+    #btn-merge:disabled { opacity: 0.45; cursor: not-allowed; }
+    #btn-reset {
+      width: 100%;
+      padding: 9px;
+      background: transparent;
+      color: #555;
+      border: 1px solid #2a2a3a;
+      border-radius: 10px;
+      font-size: 0.82rem;
+      cursor: pointer;
+      transition: color 0.2s, border-color 0.2s;
+      margin-bottom: 14px;
+      display: none;
+    }
+    #btn-reset:hover { color: #e8e8f0; border-color: #555; }
+    #btn-download {
+      display: none;
+      width: 100%;
+      padding: 13px;
+      background: #166534;
+      color: #4ade80;
+      border: 1px solid #166534;
+      border-radius: 10px;
+      font-size: 0.95rem;
+      font-weight: 600;
+      text-align: center;
+      text-decoration: none;
+      transition: background 0.2s;
+      margin-bottom: 14px;
+    }
+    #btn-download:hover { background: #15803d; }
+
+    .info {
+      padding: 11px 13px;
+      background: #12121a;
+      border: 1px solid #2a2a3a;
+      border-radius: 8px;
+      font-size: 0.76rem;
+      color: #555;
+      line-height: 1.7;
+    }
+    .info b { color: #a78bfa; }
+  </style>
+</head>
+<body>
+
+<h1>⚡ Auto Merge Video</h1>
+<p class="sub">Proses 100% di browser — file tidak dikirim ke server manapun</p>
+
+<div class="card">
+
+  <div class="drop-zone" id="drop-zone" onclick="document.getElementById('file-input').click()">
+    <input type="file" id="file-input" multiple accept="video/*,audio/*,image/*">
+    <div class="drop-icon">📂</div>
+    <strong>Klik atau drag file ke sini</strong>
+    <p>Video, Audio, atau Gambar — urutan pilih = urutan merge</p>
+  </div>
+
+  <ul id="file-list"></ul>
+
+  <!-- Overall progress -->
+  <div class="progress-wrap" id="overall-wrap">
+    <div class="stage-label">
+      <span id="stage-text">Memuat...</span>
+      <span id="pct-text">0%</span>
+    </div>
+    <div class="progress-track">
+      <div class="progress-fill" id="overall-fill"></div>
+    </div>
+  </div>
+
+  <!-- Per-file progress -->
+  <div class="file-progress-wrap" id="file-wrap">
+    <div class="file-progress-label" id="file-label">File 1/1...</div>
+    <div class="file-progress-track">
+      <div class="file-progress-fill" id="file-fill"></div>
+    </div>
+  </div>
+
+  <div id="status"></div>
+
+  <button id="btn-merge" onclick="startMerge()" disabled>🎬 Merge Sekarang</button>
+  <button id="btn-reset" onclick="resetAll()">🔄 Reset / Pilih File Lain</button>
+  <a id="btn-download" download="output.mp4">⬇️ Download Hasil (output.mp4)</a>
+
+  <div class="info">
+    <b>ℹ️ Cara pakai:</b><br>
+    1. Pilih file (video/gambar/audio) — urutan pilih = urutan merge<br>
+    2. Klik <b>Merge Sekarang</b> — tunggu progress bar selesai<br>
+    3. Klik tombol <b>Download</b> hijau<br><br>
+    <b>⚠️ Catatan:</b> Gunakan Chrome/Edge. File besar butuh waktu lebih lama karena diproses di browser kamu.
+  </div>
+
+</div>
+
+<script type="module">
+import { FFmpeg } from 'https://cdn.jsdelivr.net/npm/@ffmpeg/ffmpeg@0.12.6/dist/esm/index.js';
+import { fetchFile, toBlobURL } from 'https://cdn.jsdelivr.net/npm/@ffmpeg/util@0.12.1/dist/esm/index.js';
+
 const ffmpeg = new FFmpeg();
 
-async function merge() {
-  await ffmpeg.load();
-  const files = document.getElementById('files').files;
-  
-  // Load semua file
-  for (let i = 0; i < files.length; i++) {
-    const data = await files[i].arrayBuffer();
-    await ffmpeg.writeFile(`input_${i}.mp4`, new Uint8Array(data));
+// DOM refs
+const dropZone    = document.getElementById('drop-zone');
+const fileInput   = document.getElementById('file-input');
+const fileListEl  = document.getElementById('file-list');
+const btnMerge    = document.getElementById('btn-merge');
+const btnReset    = document.getElementById('btn-reset');
+const btnDownload = document.getElementById('btn-download');
+const statusEl    = document.getElementById('status');
+
+const overallWrap = document.getElementById('overall-wrap');
+const overallFill = document.getElementById('overall-fill');
+const stageText   = document.getElementById('stage-text');
+const pctText     = document.getElementById('pct-text');
+
+const fileWrap    = document.getElementById('file-wrap');
+const fileFill    = document.getElementById('file-fill');
+const fileLabel   = document.getElementById('file-label');
+
+let selectedFiles = [];
+let fileBadges    = [];  // refs ke badge tiap file
+let fileBgs       = [];  // refs ke background progress tiap file
+
+// ── helpers ──────────────────────────────────────────────
+function setStatus(msg, type = '') {
+  statusEl.textContent = msg;
+  statusEl.className   = type;
+}
+
+function setOverall(pct, label) {
+  overallWrap.style.display = 'block';
+  overallFill.style.width   = pct + '%';
+  stageText.textContent     = label;
+  pctText.textContent       = Math.round(pct) + '%';
+}
+
+function setFilePct(pct, label) {
+  fileWrap.style.display  = 'block';
+  fileFill.style.width    = pct + '%';
+  fileLabel.textContent   = label;
+}
+
+function setFileBadge(i, state) {
+  if (!fileBadges[i]) return;
+  const map = { waiting: '⏳ menunggu', processing: '⚙️ proses...', done: '✅ selesai', skip: '⏭ skip' };
+  fileBadges[i].textContent = map[state] || state;
+  fileBadges[i].className   = 'file-badge ' + (state === 'done' ? 'done' : state === 'processing' ? 'processing' : 'waiting');
+  if (fileBgs[i]) fileBgs[i].style.width = state === 'done' ? '100%' : state === 'processing' ? '50%' : '0%';
+}
+
+function fmtSize(b) {
+  if (b < 1024*1024) return (b/1024).toFixed(1)+' KB';
+  return (b/1024/1024).toFixed(1)+' MB';
+}
+function getIcon(f) {
+  if (f.type.startsWith('video/'))  return '🎬';
+  if (f.type.startsWith('audio/'))  return '🎵';
+  if (f.type.startsWith('image/'))  return '🖼️';
+  return '📄';
+}
+
+function renderFileList() {
+  fileListEl.innerHTML = '';
+  fileBadges = [];
+  fileBgs    = [];
+  selectedFiles.forEach((f, i) => {
+    const li   = document.createElement('li');
+    const bg   = document.createElement('div');
+    bg.className = 'file-progress-bg';
+    const badge = document.createElement('span');
+    badge.className = 'file-badge waiting';
+    badge.textContent = '⏳ menunggu';
+    li.innerHTML = `
+      <span class="file-icon">${getIcon(f)}</span>
+      <span class="file-name">${i+1}. ${f.name}</span>
+      <span class="file-size">${fmtSize(f.size)}</span>
+    `;
+    li.prepend(bg);
+    li.appendChild(badge);
+    fileListEl.appendChild(li);
+    fileBadges.push(badge);
+    fileBgs.push(bg);
+  });
+  btnMerge.disabled           = selectedFiles.length < 1;
+  btnReset.style.display      = selectedFiles.length > 0 ? 'block' : 'none';
+}
+
+// ── file selection ────────────────────────────────────────
+fileInput.addEventListener('change', () => {
+  selectedFiles = Array.from(fileInput.files);
+  renderFileList();
+  btnDownload.style.display = 'none';
+  setStatus('');
+  overallWrap.style.display = 'none';
+  fileWrap.style.display    = 'none';
+});
+
+dropZone.addEventListener('dragover',  e => { e.preventDefault(); dropZone.classList.add('dragover'); });
+dropZone.addEventListener('dragleave', ()  => dropZone.classList.remove('dragover'));
+dropZone.addEventListener('drop', e => {
+  e.preventDefault();
+  dropZone.classList.remove('dragover');
+  selectedFiles = Array.from(e.dataTransfer.files);
+  renderFileList();
+  btnDownload.style.display = 'none';
+  setStatus('');
+  overallWrap.style.display = 'none';
+  fileWrap.style.display    = 'none';
+});
+
+window.resetAll = () => {
+  selectedFiles = [];
+  fileInput.value = '';
+  fileListEl.innerHTML  = '';
+  fileBadges = []; fileBgs = [];
+  btnMerge.disabled           = true;
+  btnReset.style.display      = 'none';
+  btnDownload.style.display   = 'none';
+  overallWrap.style.display   = 'none';
+  fileWrap.style.display      = 'none';
+  overallFill.style.width     = '0%';
+  fileFill.style.width        = '0%';
+  setStatus('');
+};
+
+// ── FFmpeg log → per-file progress estimate ──────────────
+// FFmpeg emits "frame=N fps=..." or "size=..." lines
+// We parse them to show progress per segment
+let _totalDuration = 0;
+let _currentSegIdx = 0;
+
+ffmpeg.on('log', ({ message }) => {
+  // Parse durasi total dari "Duration: HH:MM:SS"
+  const durMatch = message.match(/Duration:\s*(\d+):(\d+):([\d.]+)/);
+  if (durMatch) {
+    _totalDuration = (+durMatch[1])*3600 + (+durMatch[2])*60 + +durMatch[3];
   }
-  
-  // Buat list concat
-  let list = '';
-  for (let i = 0; i < files.length; i++) {
-    list += `file 'input_${i}.mp4'\n`;
+  // Parse posisi saat ini dari "time=HH:MM:SS"
+  const timeMatch = message.match(/time=\s*(\d+):(\d+):([\d.]+)/);
+  if (timeMatch && _totalDuration > 0) {
+    const cur = (+timeMatch[1])*3600 + (+timeMatch[2])*60 + +timeMatch[3];
+    const pct = Math.min(99, (cur / _totalDuration) * 100);
+    setFilePct(pct, `Encode file ${_currentSegIdx+1}/${selectedFiles.length} — ${pct.toFixed(0)}%`);
+    if (fileBgs[_currentSegIdx]) fileBgs[_currentSegIdx].style.width = pct + '%';
   }
-  await ffmpeg.writeFile('list.txt', list);
-  
-  // Merge
-  await ffmpeg.exec([
-    '-f', 'concat', '-safe', '0',
-    '-i', 'list.txt', '-c', 'copy', 'output.mp4'
-  ]);
-  
-  // Download
-  const data = await ffmpeg.readFile('output.mp4');
-  const url = URL.createObjectURL(
-    new Blob([data.buffer], {type: 'video/mp4'})
-  );
-  document.getElementById('download').href = url;
-  document.getElementById('download').download = 'output.mp4';
+});
+
+// ── main merge ────────────────────────────────────────────
+window.startMerge = async () => {
+  if (selectedFiles.length === 0) return;
+
+  btnMerge.disabled         = true;
+  btnDownload.style.display = 'none';
+  fileWrap.style.display    = 'none';
+  fileFill.style.width      = '0%';
+
+  try {
+    // STEP 1 — load FFmpeg WASM
+    setOverall(5, '📦 Memuat FFmpeg WASM...');
+    setStatus('Memuat engine — pertama kali agak lama (~5 detik)...');
+    if (!ffmpeg.loaded) {
+      const base = 'https://cdn.jsdelivr.net/npm/@ffmpeg/core@0.12.6/dist/esm';
+      await ffmpeg.load({
+        coreURL: await toBlobURL(`${base}/ffmpeg-core.js`,   'text/javascript'),
+        wasmURL: await toBlobURL(`${base}/ffmpeg-core.wasm`, 'application/wasm'),
+      });
+    }
+
+    // STEP 2 — read files into WASM FS (with per-file byte progress)
+    setOverall(15, '📥 Membaca file ke memori...');
+    const totalBytes = selectedFiles.reduce((s, f) => s + f.size, 0);
+    let loadedBytes  = 0;
+
+    for (let i = 0; i < selectedFiles.length; i++) {
+      const f    = selectedFiles[i];
+      const ext  = f.name.split('.').pop().toLowerCase() || 'mp4';
+      const name = `input_${i}.${ext}`;
+
+      setFileBadge(i, 'processing');
+      setFilePct(0, `📥 Membaca file ${i+1}/${selectedFiles.length}: ${f.name}`);
+      fileWrap.style.display = 'block';
+
+      // Read dengan progress via ReadableStream
+      const arrayBuffer = await readFileWithProgress(f, pct => {
+        setFilePct(pct, `📥 Membaca file ${i+1}/${selectedFiles.length}: ${f.name} — ${pct.toFixed(0)}%`);
+        if (fileBgs[i]) fileBgs[i].style.width = pct + '%';
+      });
+
+      await ffmpeg.writeFile(name, new Uint8Array(arrayBuffer));
+      loadedBytes += f.size;
+      setFileBadge(i, 'done');
+      setFilePct(100, `✅ File ${i+1} selesai dibaca`);
+
+      const overallPct = 15 + ((loadedBytes / totalBytes) * 25);
+      setOverall(overallPct, `📥 Membaca file ${i+1}/${selectedFiles.length}...`);
+    }
+
+    // STEP 3 — encode each segment
+    const isImage = f => f.type.startsWith('image/');
+    const isAudio = f => f.type.startsWith('audio/');
+    let outputFiles = [];
+    let segIdx = 0;
+    let si = 0;
+
+    setOverall(40, '🔧 Encoding segmen...');
+    fileWrap.style.display = 'block';
+
+    while (si < selectedFiles.length) {
+      const f    = selectedFiles[si];
+      const ext  = f.name.split('.').pop().toLowerCase();
+      const fname = `input_${si}.${ext}`;
+      const out   = `segment_${segIdx}.mp4`;
+
+      _currentSegIdx  = si;
+      _totalDuration  = 0;
+
+      if (isImage(f) && si+1 < selectedFiles.length && isAudio(selectedFiles[si+1])) {
+        // 🖼️ + 🎵 → video
+        setFileBadge(si,   'processing');
+        setFileBadge(si+1, 'processing');
+        const aExt   = selectedFiles[si+1].name.split('.').pop().toLowerCase();
+        const aName  = `input_${si+1}.${aExt}`;
+        setStatus(`🖼️ Gambar + Audio → Video (segmen ${segIdx+1})`);
+        await ffmpeg.exec([
+          '-loop','1','-i',fname,'-i',aName,
+          '-vf','scale=1280:720:force_original_aspect_ratio=increase,crop=1280:720',
+          '-c:v','libx264','-preset','ultrafast',
+          '-pix_fmt','yuv420p','-c:a','aac','-shortest','-y', out
+        ]);
+        setFileBadge(si,   'done');
+        setFileBadge(si+1, 'done');
+        si += 2;
+
+      } else if (!isImage(f) && !isAudio(f)) {
+        // 🎬 video biasa
+        setFileBadge(si, 'processing');
+        setStatus(`🎬 Encoding video ${si+1}/${selectedFiles.length}`);
+        await ffmpeg.exec([
+          '-i',fname,
+          '-vf','scale=1280:720:force_original_aspect_ratio=increase,crop=1280:720',
+          '-c:v','libx264','-preset','ultrafast',
+          '-pix_fmt','yuv420p','-c:a','aac','-ar','44100','-y', out
+        ]);
+        setFileBadge(si, 'done');
+        si++;
+
+      } else {
+        setFileBadge(si, 'skip');
+        si++;
+        continue;
+      }
+
+      outputFiles.push(out);
+      segIdx++;
+      const encPct = 40 + (segIdx / Math.max(outputFiles.length, 1)) * 35;
+      setOverall(Math.min(75, encPct), `🔧 Encoding segmen ${segIdx}...`);
+    }
+
+    // STEP 4 — concat
+    setOverall(80, '🔗 Menggabungkan semua segmen...');
+    setStatus('Menggabungkan...');
+    fileFill.style.width = '50%';
+    fileLabel.textContent = 'Menggabungkan segmen...';
+
+    let finalName;
+    if (outputFiles.length === 0) {
+      throw new Error('Tidak ada file video/gambar yang bisa diproses.');
+    } else if (outputFiles.length === 1) {
+      finalName = outputFiles[0];
+    } else {
+      const listTxt = outputFiles.map(f => `file '${f}'`).join('\n');
+      await ffmpeg.writeFile('list.txt', listTxt);
+      await ffmpeg.exec(['-f','concat','-safe','0','-i','list.txt','-c','copy','-y','final.mp4']);
+      finalName = 'final.mp4';
+    }
+
+    // STEP 5 — baca output
+    setOverall(92, '📦 Menyiapkan file download...');
+    fileFill.style.width  = '90%';
+    fileLabel.textContent = 'Membaca hasil...';
+
+    const outData = await ffmpeg.readFile(finalName);
+    const blob    = new Blob([outData.buffer], { type: 'video/mp4' });
+    const url     = URL.createObjectURL(blob);
+
+    btnDownload.href              = url;
+    btnDownload.style.display     = 'block';
+    fileFill.style.width          = '100%';
+    fileLabel.textContent         = '✅ Selesai!';
+    setOverall(100, '✅ Selesai!');
+    setStatus('Klik tombol hijau di bawah untuk download hasil.', 'success');
+
+  } catch (err) {
+    console.error(err);
+    setStatus('❌ Error: ' + err.message, 'error');
+    setOverall(0, '');
+    overallWrap.style.display = 'none';
+  } finally {
+    btnMerge.disabled = false;
+  }
+};
+
+// ── read file with progress ───────────────────────────────
+function readFileWithProgress(file, onProgress) {
+  return new Promise((resolve, reject) => {
+    const reader = new FileReader();
+    // FileReader tidak punya stream progress, pakai onprogress event
+    reader.onprogress = e => {
+      if (e.lengthComputable) onProgress((e.loaded / e.total) * 100);
+    };
+    reader.onload  = e => resolve(e.target.result);
+    reader.onerror = ()  => reject(new Error('Gagal membaca file: ' + file.name));
+    reader.readAsArrayBuffer(file);
+  });
 }
 </script>
+
+</body>
+</html>
