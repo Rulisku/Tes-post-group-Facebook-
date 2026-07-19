@@ -1,0 +1,44 @@
+<!-- index.html -->
+<script src="https://unpkg.com/@ffmpeg/ffmpeg@0.12.6/dist/umd/ffmpeg.js">
+</script>
+
+<input type="file" id="files" multiple accept="video/*,audio/*,image/*">
+<button onclick="merge()">Merge!</button>
+<a id="download">Download</a>
+
+<script>
+const { FFmpeg } = FFmpegWASM;
+const ffmpeg = new FFmpeg();
+
+async function merge() {
+  await ffmpeg.load();
+  const files = document.getElementById('files').files;
+  
+  // Load semua file
+  for (let i = 0; i < files.length; i++) {
+    const data = await files[i].arrayBuffer();
+    await ffmpeg.writeFile(`input_${i}.mp4`, new Uint8Array(data));
+  }
+  
+  // Buat list concat
+  let list = '';
+  for (let i = 0; i < files.length; i++) {
+    list += `file 'input_${i}.mp4'\n`;
+  }
+  await ffmpeg.writeFile('list.txt', list);
+  
+  // Merge
+  await ffmpeg.exec([
+    '-f', 'concat', '-safe', '0',
+    '-i', 'list.txt', '-c', 'copy', 'output.mp4'
+  ]);
+  
+  // Download
+  const data = await ffmpeg.readFile('output.mp4');
+  const url = URL.createObjectURL(
+    new Blob([data.buffer], {type: 'video/mp4'})
+  );
+  document.getElementById('download').href = url;
+  document.getElementById('download').download = 'output.mp4';
+}
+</script>
