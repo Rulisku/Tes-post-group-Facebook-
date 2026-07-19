@@ -16,17 +16,13 @@ jobs:
         run: |
           mkdir -p downloads ready
           
-          # 1. Download biner FFmpeg & FFprobe resmi versi static (Super Cepat)
-          wget -q https://github.com || \
-          wget -q https://johnvansickle.com
+          # 1. Download langsung file biner FFmpeg & FFprobe jadi (Tanpa perlu ekstrak tar/zip)
+          # Mengambil langsung biner siap pakai dari mirror build terpercaya
+          sudo wget -q -O /usr/local/bin/ffmpeg https://github.com
+          sudo wget -q -O /usr/local/bin/ffprobe https://github.com
           
-          # Ekstrak biner dan pindahkan ke folder sistem lokal
-          if [ -f *.zip ]; then
-            unzip -q *.zip && mv ffmpeg-*/bin/* /usr/local/bin/
-          else
-            tar -xf *.tar.xz && mv ffmpeg-*-static/ff* /usr/local/bin/
-          fi
-          rm -rf ffmpeg-* *.zip *.tar.xz
+          # Berikan izin akses eksekusi agar sistem bisa menjalankan perintah 'ffmpeg'
+          sudo chmod +x /usr/local/bin/ffmpeg /usr/local/bin/ffprobe
           
           # 2. Hanya menginstal gpac (MP4Box), megatools, dan bc secara paralel di background
           sudo apt-get install -y -qq --no-install-recommends gpac megatools bc > /dev/null 2>&1 &
