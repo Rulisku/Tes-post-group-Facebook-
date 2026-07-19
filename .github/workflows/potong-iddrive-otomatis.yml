@@ -16,17 +16,16 @@ jobs:
         run: |
           mkdir -p downloads ready
           
-          # 1. Download biner FFmpeg & FFprobe resmi versi static (Super Cepat ~3 detik)
-          # Menggunakan archive rilis resmi agar tidak bergantung pada server pihak ketiga yang tidak stabil
+          # 1. Download biner FFmpeg & FFprobe resmi versi static (Super Cepat)
           wget -q https://github.com || \
           wget -q https://johnvansickle.com
           
-          # Ekstrak biner dan pindahkan ke folder sistem lokal agar bisa langsung dipanggil perintah 'ffmpeg'
+          # Ekstrak biner dan pindahkan ke folder sistem lokal
           if [ -f *.zip ]; then
             unzip -q *.zip && mv ffmpeg-*/bin/* /usr/local/bin/
           else
             tar -xf *.tar.xz && mv ffmpeg-*-static/ff* /usr/local/bin/
-          </h2>fi
+          fi
           rm -rf ffmpeg-* *.zip *.tar.xz
           
           # 2. Hanya menginstal gpac (MP4Box), megatools, dan bc secara paralel di background
@@ -56,7 +55,7 @@ jobs:
             mv "$output" "$output.$ext"
           done
           
-          # Pastikan seluruh proses instalasi gpac di background selesai 100% sebelum masuk tahap encode
+          # Pastikan seluruh proses instalasi gpac di background selesai 100%
           wait
 
       - name: Sync & Encode (Super Ringan & Hemat CPU)
