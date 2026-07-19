@@ -14,7 +14,8 @@ jobs:
     steps:
       - name: Setup & Download
         run: |
-          sudo apt-get update && sudo apt-get install -y ffmpeg megatools
+          # Menginstal gpac untuk mendapatkan tool MP4Box yang super ringan
+          sudo apt-get update && sudo apt-get install -y ffmpeg megatools gpac
           pip install gdown
           mkdir -p downloads ready
           
@@ -33,57 +34,82 @@ jobs:
               gdown "$url" -O "$output"
             fi
             
-            # Beri ekstensi agar FFmpeg mengenali formatnya
+            # Beri ekstensi agar FFmpeg mengenali formatnya di tahap berikutnya
             ext=$(file --mime-type -b "$output" | cut -d/ -f2 | sed 's/jpeg/jpg/')
             mv "$output" "$output.$ext"
           done
 
-      - name: Sync & Encode
+      - name: Sync & Encode (Super Ringan & Hemat CPU)
         run: |
-          # 2. Proses Encode Cerdas
+          # 2. Proses penyamaan format dengan beban CPU seminimal mungkin
           files=($(ls downloads/raw_*.* | sort -V))
-          
-          for (( i=0; i<${#files[@]}; i++ )); do
+          num_files=${#files[@]}
+          i=0
+
+          # Konfigurasi flag FFmpeg untuk kecepatan maksimal, CPU santai, dan struktur frame yang sinkron
+          FF_LIGHT="-c:v libx264 -preset ultrafast -tune fastdecode -crf 26 -pix_fmt yuv420p -c:a aac -g 30 -r 30"
+
+          while [ $i -lt $num_files ]; do
             f="${files[$i]}"
-            next_f="${files[$((i+1))]}"
+            next_idx=$((i+1))
+            next_f=""
+            [ $next_idx -lt $num_files ] && next_f="${files[$next_idx]}"
             
-            # Deteksi tipe file
-            is_img=$(file --mime-type -b "$f" | grep -q "image/" && echo "yes" || echo "no")
-            is_vid=$(file --mime-type -b "$f" | grep -q "video/" && echo "yes" || echo "no")
-            is_next_aud=$( [[ -n "$next_f" ]] && file --mime-type -b "$next_f" | grep -q "audio/" && echo "yes" || echo "no")
+            # Deteksi tipe file menggunakan flag
+            is_img=0; is_vid=0; is_aud=0; is_next_aud=0
+            mime=$(file --mime-type -b "$f")
+            [[ "$mime" == image/* ]] && is_img=1
+            [[ "$mime" == video/* ]] && is_vid=1
+            [[ "$mime" == audio/* ]] && is_aud=1
 
-            # KASUS: GAMBAR + AUDIO (Slide Foto)
-            if [ "$is_img" == "yes" ] && [ "$is_next_aud" == "yes" ]; then
+            if [ -n "$next_f" ]; then
+              next_mime=$(file --mime-type -b "$next_f")
+              [[ "$next_mime" == audio/* ]] && is_next_aud=1
+            fi
+
+            # KASUS A: GAMBAR + AUDIO (Slide Foto)
+            if [ $is_img -eq 1 ] && [ $is_next_aud -eq 1 ]; then
               ffmpeg -y -loop 1 -i "$f" -i "$next_f" \
-              -vf "scale=1280:720:force_original_aspect_ratio=decrease,pad=1280:720:(ow-iw)/2:(oh-ih)/2"  \
-              -c:v libx264 -pix_fmt yuv420p -c:a aac -shortest "ready/video_$i.mp4"
-              i=$((i+1)) 
+              -vf "scale=1280:720:force_original_aspect_ratio=decrease,pad=1280:720:(ow-iw)/2:(oh-ih)/2" \
+              $FF_LIGHT -shortest "ready/video_$i.mp4"
+              i=$((i+2)) # Lompat 2 file karena file audio pendamping sudah dipakai
 
-            # KASUS: VIDEO + AUDIO (Voice Over)
-            elif [ "$is_vid" == "yes" ] && [ "$is_next_aud" == "yes" ]; then
+            # KASUS B: VIDEO + AUDIO (Voice Over / Ganti Audio)
+            elif [ $is_vid -eq 1 ] && [ $is_next_aud -eq 1 ]; then
               ffmpeg -y -i "$f" -i "$next_f" \
-            -vf "scale=1280:720:force_original_aspect_ratio=decrease,pad=1280:720:(ow-iw)/2:(oh-ih)/2" \
-              -c:v libx264 -pix_fmt yuv420p -c:a aac -map 0:v:0 -map 1:a:0 -shortest "ready/video_$i.mp4"
+              -vf "scale=1280:720:force_original_aspect_ratio=decrease,pad=1280:720:(ow-iw)/2:(oh-ih)/2" \
+              $FF_LIGHT -map 0:v:0 -map 1:a:0 -shortest "ready/video_$i.mp4"
+              i=$((i+2)) # Lompat 2 file
+
+            # KASUS C: AUDIO SAJA (Buat layar hitam default 5 detik)
+            elif [ $is_aud -eq 1 ]; then
+              ffmpeg -y -f lavfi -i color=c=black:s=1280x720:d=5 -i "$f" \
+              $FF_LIGHT -shortest "ready/video_$i.mp4"
               i=$((i+1))
 
-            # KASUS: AUDIO SAJA (Buat layar hitam)
-            elif [[ "$(file --mime-type -b "$f")" == audio/* ]]; then
-              ffmpeg -y -f lavfi -i color=c=black:s=1280x720:d=5 -i "$f" \
-              -c:v libx264 -pix_fmt yuv420p -c:a aac -shortest "ready/video_$i.mp4"
-            
-            # KASUS: VIDEO SAJA (Tanpa pasangan)
+            # KASUS D: VIDEO SAJA (Normalisasi resolusi & audio)
             else
               ffmpeg -y -i "$f" \
-             -vf "scale=1280:720:force_original_aspect_ratio=decrease,pad=1280:720:(ow-iw)/2:(oh-ih)/2" \
-              -c:v libx264 -pix_fmt yuv420p -c:a aac -ar 44100 "ready/video_$i.mp4"
+              -vf "scale=1280:720:force_original_aspect_ratio=decrease,pad=1280:720:(ow-iw)/2:(oh-ih)/2" \
+              $FF_LIGHT -ar 44100 "ready/video_$i.mp4"
+              i=$((i+1))
             fi
           done
 
-      - name: Merge Final
+      - name: Merge Final (Pakai MP4Box Instan)
         run: |
-          # 3. Gabungkan semua hasil
-          find ready -name "video_*.mp4" | sort -V | sed "s/^/file '&'/" > list.txt
-          ffmpeg -f concat -safe 0 -i list.txt -c copy output.mp4
+          # 3. Menggabungkan semua klip MP4 secara instan tanpa membebani CPU
+          files=($(ls ready/video_*.mp4 | sort -V))
+          
+          # Membuat perintah MP4Box secara dinamis sesuai jumlah file yang ada
+          cmd="MP4Box"
+          for f in "${files[@]}"; do
+            cmd="$cmd -cat \"$f\""
+          done
+          cmd="$cmd -new output.mp4"
+          
+          # Eksekusi penggabungan struktur berkas MP4
+          eval $cmd
 
       - name: Upload Artifact
         uses: actions/upload-artifact@v4
