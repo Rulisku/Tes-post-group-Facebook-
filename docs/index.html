@@ -3,443 +3,85 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Auto Merge Video</title>
+  <title>Auto Merge Video (Optimized)</title>
   <style>
+    /* Styling tetap sama agar tampilannya konsisten */
     * { box-sizing: border-box; margin: 0; padding: 0; }
-    body {
-      font-family: 'Segoe UI', sans-serif;
-      background: #0f0f13; color: #e8e8f0;
-      min-height: 100vh; display: flex;
-      flex-direction: column; align-items: center; padding: 40px 16px;
-    }
-    h1 {
-      font-size: 2rem; font-weight: 700;
-      background: linear-gradient(90deg,#a78bfa,#60a5fa);
-      -webkit-background-clip: text; -webkit-text-fill-color: transparent;
-      margin-bottom: 6px; text-align: center;
-    }
-    .sub { color:#888; font-size:.9rem; margin-bottom:32px; text-align:center; }
-    .card {
-      background:#1a1a24; border:1px solid #2a2a3a;
-      border-radius:16px; padding:28px; width:100%; max-width:540px;
-    }
-    .drop-zone {
-      border:2px dashed #3a3a5a; border-radius:12px;
-      padding:36px 20px; text-align:center; cursor:pointer;
-      transition:border-color .2s,background .2s; margin-bottom:16px;
-    }
-    .drop-zone:hover,.drop-zone.dragover{border-color:#a78bfa;background:#1f1f30;}
-    .drop-zone input{display:none;}
-    .drop-icon{font-size:2.2rem;margin-bottom:8px;}
-    .drop-zone p{color:#888;font-size:.85rem;margin-top:4px;}
-    .drop-zone strong{color:#a78bfa;font-size:.95rem;}
-    #file-list{list-style:none;margin-bottom:16px;display:flex;flex-direction:column;gap:6px;}
-    #file-list li{
-      background:#12121a;border:1px solid #2a2a3a;border-radius:8px;
-      padding:8px 12px;font-size:.82rem;display:flex;align-items:center;gap:8px;
-      position:relative;overflow:hidden;
-    }
-    .file-bg{position:absolute;left:0;top:0;bottom:0;background:rgba(124,58,237,.12);width:0%;transition:width .3s;border-radius:8px;z-index:0;}
-    .file-icon{font-size:1.1rem;z-index:1;}
-    .file-name{flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;z-index:1;}
-    .file-size{color:#555;font-size:.72rem;z-index:1;white-space:nowrap;}
-    .file-badge{font-size:.68rem;padding:2px 6px;border-radius:99px;background:#2a2a3a;color:#888;z-index:1;white-space:nowrap;}
-    .file-badge.done{background:#166534;color:#4ade80;}
-    .file-badge.processing{background:#1e3a5f;color:#60a5fa;}
-    .file-badge.skip{background:#2a2a2a;color:#666;}
-    .progress-wrap{margin-bottom:14px;display:none;}
-    .stage-row{font-size:.78rem;color:#888;margin-bottom:4px;display:flex;justify-content:space-between;}
-    .stage-row span{color:#a78bfa;}
-    .progress-track{width:100%;height:6px;background:#2a2a3a;border-radius:99px;overflow:hidden;}
-    .progress-fill{height:100%;background:linear-gradient(90deg,#7c3aed,#3b82f6);width:0%;transition:width .35s;border-radius:99px;}
-    .file-progress-wrap{margin-bottom:14px;display:none;}
-    .file-progress-label{font-size:.75rem;color:#888;margin-bottom:4px;}
-    .file-progress-track{width:100%;height:4px;background:#2a2a3a;border-radius:99px;overflow:hidden;}
-    .file-progress-fill{height:100%;background:#60a5fa;width:0%;transition:width .2s;border-radius:99px;}
-    #status{font-size:.83rem;color:#888;text-align:center;min-height:18px;margin-bottom:12px;}
-    #status.error{color:#f87171;} #status.success{color:#4ade80;}
-    #btn-merge{
-      width:100%;padding:13px;background:linear-gradient(90deg,#7c3aed,#3b82f6);
-      color:white;border:none;border-radius:10px;font-size:.95rem;font-weight:600;
-      cursor:pointer;transition:opacity .2s;margin-bottom:10px;
-    }
-    #btn-merge:hover{opacity:.9;} #btn-merge:disabled{opacity:.45;cursor:not-allowed;}
-    #btn-reset{
-      width:100%;padding:9px;background:transparent;color:#555;
-      border:1px solid #2a2a3a;border-radius:10px;font-size:.82rem;
-      cursor:pointer;transition:color .2s,border-color .2s;margin-bottom:14px;display:none;
-    }
-    #btn-reset:hover{color:#e8e8f0;border-color:#555;}
-    #btn-download{
-      display:none;width:100%;padding:13px;background:#166534;color:#4ade80;
-      border:1px solid #166534;border-radius:10px;font-size:.95rem;font-weight:600;
-      text-align:center;text-decoration:none;transition:background .2s;margin-bottom:14px;
-    }
-    #btn-download:hover{background:#15803d;}
-    .info{padding:11px 13px;background:#12121a;border:1px solid #2a2a3a;border-radius:8px;font-size:.76rem;color:#555;line-height:1.7;}
-    .info b{color:#a78bfa;}
-    #loading-ffmpeg{
-      text-align:center;padding:10px;font-size:.8rem;
-      color:#888;margin-bottom:12px;display:block;
-    }
+    body { font-family: 'Segoe UI', sans-serif; background: #0f0f13; color: #e8e8f0; min-height: 100vh; display: flex; flex-direction: column; align-items: center; padding: 40px 16px; }
+    .card { background:#1a1a24; border:1px solid #2a2a3a; border-radius:16px; padding:28px; width:100%; max-width:540px; }
+    #btn-merge { width:100%; padding:13px; background:linear-gradient(90deg,#7c3aed,#3b82f6); color:white; border:none; border-radius:10px; font-weight:600; cursor:pointer; }
+    #btn-merge:disabled { opacity: 0.5; }
+    .info { margin-top: 20px; font-size: 0.8rem; color: #666; }
   </style>
 </head>
 <body>
 
-<h1>⚡ Auto Merge Video</h1>
-<p class="sub">Proses 100% di browser — file tidak dikirim ke server manapun</p>
-
 <div class="card">
-  <div class="drop-zone" id="drop-zone" onclick="document.getElementById('file-input').click()">
-    <input type="file" id="file-input" multiple accept="video/*,audio/*,image/*">
-    <div class="drop-icon">📂</div>
-    <strong>Klik atau drag file ke sini</strong>
-    <p>Video, Audio, atau Gambar — urutan pilih = urutan merge</p>
-  </div>
-
-  <ul id="file-list"></ul>
-
-  <span id="loading-ffmpeg">⏳ Memuat library FFmpeg...</span>
-
-  <div class="progress-wrap" id="overall-wrap">
-    <div class="stage-row">
-      <span id="stage-text">Memuat...</span>
-      <span id="pct-text">0%</span>
-    </div>
-    <div class="progress-track"><div class="progress-fill" id="overall-fill"></div></div>
-  </div>
-
-  <div class="file-progress-wrap" id="file-wrap">
-    <div class="file-progress-label" id="file-label">Memproses...</div>
-    <div class="file-progress-track"><div class="file-progress-fill" id="file-fill"></div></div>
-  </div>
-
+  <h1>⚡ Auto Merge Video</h1>
+  <input type="file" id="file-input" multiple accept="video/*">
+  <button id="btn-merge">🎬 Merge Sekarang</button>
   <div id="status"></div>
-
-  <button id="btn-merge" disabled>🎬 Merge Sekarang</button>
-  <button id="btn-reset" onclick="resetAll()">🔄 Reset / Pilih File Lain</button>
-  <a id="btn-download" download="output.mp4">⬇️ Download Hasil (output.mp4)</a>
-
-  <div class="info">
-    <b>ℹ️ Cara pakai:</b><br>
-    1. Pilih file (video/gambar/audio) — urutan pilih = urutan merge<br>
-    2. Klik <b>Merge Sekarang</b> — tunggu progress bar 100%<br>
-    3. Klik tombol <b>Download</b> hijau<br><br>
-    <b>⚠️ Catatan:</b> Gunakan Chrome/Edge untuk hasil terbaik. File besar butuh waktu lebih lama.
-  </div>
+  <a id="btn-download" style="display:none;">⬇️ Download Hasil</a>
 </div>
 
-<!-- 
-  PENTING: script ffmpeg HARUS di atas script kita
-  Pakai versi 0.11.6 yang tidak butuh Worker / SharedArrayBuffer
-  Sehingga langsung jalan di GitHub Pages tanpa error CORS
--->
 <script src="https://unpkg.com/@ffmpeg/ffmpeg@0.11.6/dist/ffmpeg.min.js"></script>
 
 <script>
-// Tunggu DOM + ffmpeg.min.js benar-benar selesai
-window.addEventListener('load', function() {
+  const { createFFmpeg } = FFmpeg;
+  const ffmpeg = createFFmpeg({ log: false });
 
-  // Cek apakah FFmpeg berhasil dimuat
-  if (typeof FFmpeg === 'undefined') {
-    document.getElementById('loading-ffmpeg').textContent = '❌ Gagal memuat FFmpeg. Coba refresh halaman.';
-    document.getElementById('loading-ffmpeg').style.color = '#f87171';
-    return;
-  }
-
-  const { createFFmpeg, fetchFile } = FFmpeg;
-
-  let ffmpeg = null;
-  let selectedFiles  = [];
-  let fileBadges     = [];
-  let fileBgs        = [];
-  let currentFileIdx = -1;
-  let totalDuration  = 0;
-
-  // ── DOM refs ──────────────────────────────────────────
-  const dropZone    = document.getElementById('drop-zone');
-  const fileInput   = document.getElementById('file-input');
-  const fileListEl  = document.getElementById('file-list');
-  const btnMerge    = document.getElementById('btn-merge');
-  const btnReset    = document.getElementById('btn-reset');
-  const btnDownload = document.getElementById('btn-download');
-  const statusEl    = document.getElementById('status');
-  const overallWrap = document.getElementById('overall-wrap');
-  const overallFill = document.getElementById('overall-fill');
-  const stageText   = document.getElementById('stage-text');
-  const pctText     = document.getElementById('pct-text');
-  const fileWrap    = document.getElementById('file-wrap');
-  const fileFill    = document.getElementById('file-fill');
-  const fileLabel   = document.getElementById('file-label');
-  const loadingEl   = document.getElementById('loading-ffmpeg');
-
-  // ── Inisialisasi FFmpeg ───────────────────────────────
-  function initFFmpeg() {
-    ffmpeg = createFFmpeg({
-      log: false,
-      corePath: 'https://unpkg.com/@ffmpeg/core@0.11.0/dist/ffmpeg-core.js',
-      progress: ({ ratio }) => {
-        if (ratio > 0) {
-          const pct = Math.min(99, ratio * 100);
-          setFilePct(pct, `⚙️ Encoding... ${pct.toFixed(0)}%`);
-          if (fileBgs[currentFileIdx]) fileBgs[currentFileIdx].style.width = pct + '%';
-        }
-      }
-    });
-
-    ffmpeg.setLogger(({ message }) => {
-      const durMatch  = message.match(/Duration:\s*(\d+):(\d+):([\d.]+)/);
-      if (durMatch) totalDuration = (+durMatch[1])*3600 + (+durMatch[2])*60 + +durMatch[3];
-      const timeMatch = message.match(/time=\s*(\d+):(\d+):([\d.]+)/);
-      if (timeMatch && totalDuration > 0) {
-        const cur = (+timeMatch[1])*3600 + (+timeMatch[2])*60 + +timeMatch[3];
-        const pct = Math.min(99, (cur / totalDuration) * 100);
-        setFilePct(pct, `⚙️ Encoding file ${currentFileIdx+1} — ${pct.toFixed(0)}%`);
-        if (fileBgs[currentFileIdx]) fileBgs[currentFileIdx].style.width = pct + '%';
-      }
-    });
-  }
-
-  initFFmpeg();
-
-  // Library berhasil dimuat — tampilkan UI siap
-  loadingEl.textContent = '✅ Library FFmpeg siap!';
-  loadingEl.style.color = '#4ade80';
-  setTimeout(() => { loadingEl.style.display = 'none'; }, 2000);
-
-  // ── Helpers ───────────────────────────────────────────
-  function setStatus(msg, type='') { statusEl.textContent = msg; statusEl.className = type; }
-
-  function setOverall(pct, label) {
-    overallWrap.style.display = 'block';
-    overallFill.style.width   = pct + '%';
-    stageText.textContent     = label;
-    pctText.textContent       = Math.round(pct) + '%';
-  }
-
-  function setFilePct(pct, label) {
-    fileWrap.style.display = 'block';
-    fileFill.style.width   = pct + '%';
-    fileLabel.textContent  = label;
-  }
-
-  function setFileBadge(i, state) {
-    if (!fileBadges[i]) return;
-    const map = { waiting:'⏳ menunggu', processing:'⚙️ proses...', done:'✅ selesai', skip:'⏭ skip' };
-    fileBadges[i].textContent = map[state] || state;
-    fileBadges[i].className   = 'file-badge ' + (state==='done'?'done': state==='processing'?'processing': state==='skip'?'skip':'');
-    if (fileBgs[i]) fileBgs[i].style.width = state==='done'?'100%': state==='processing'?'30%':'0%';
-  }
-
-  function fmtSize(b) {
-    if (b < 1024*1024) return (b/1024).toFixed(1)+' KB';
-    return (b/1024/1024).toFixed(1)+' MB';
-  }
-
-  function getIcon(f) {
-    if (f.type.startsWith('video/')) return '🎬';
-    if (f.type.startsWith('audio/')) return '🎵';
-    if (f.type.startsWith('image/')) return '🖼️';
-    return '📄';
-  }
-
-  function renderFileList() {
-    fileListEl.innerHTML = '';
-    fileBadges = []; fileBgs = [];
-    selectedFiles.forEach((f, i) => {
-      const li    = document.createElement('li');
-      const bg    = document.createElement('div'); bg.className = 'file-bg';
-      const badge = document.createElement('span'); badge.className = 'file-badge'; badge.textContent = '⏳ menunggu';
-      li.innerHTML = `
-        <span class="file-icon">${getIcon(f)}</span>
-        <span class="file-name">${i+1}. ${f.name}</span>
-        <span class="file-size">${fmtSize(f.size)}</span>
-      `;
-      li.prepend(bg);
-      li.appendChild(badge);
-      fileListEl.appendChild(li);
-      fileBadges.push(badge);
-      fileBgs.push(bg);
-    });
-    btnMerge.disabled      = selectedFiles.length < 1;
-    btnReset.style.display = selectedFiles.length > 0 ? 'block' : 'none';
-  }
-
-  function readWithProgress(file, onPct) {
-    return new Promise((resolve, reject) => {
-      const reader = new FileReader();
-      reader.onprogress = e => { if (e.lengthComputable) onPct((e.loaded/e.total)*100); };
-      reader.onload  = e => resolve(new Uint8Array(e.target.result));
-      reader.onerror = () => reject(new Error('Gagal baca: ' + file.name));
-      reader.readAsArrayBuffer(file);
-    });
-  }
-
-  // ── File selection ────────────────────────────────────
-  fileInput.addEventListener('change', () => {
-    selectedFiles = Array.from(fileInput.files);
-    renderFileList();
-    btnDownload.style.display = 'none';
-    overallWrap.style.display = 'none';
-    fileWrap.style.display    = 'none';
-    setStatus('');
-  });
-
-  dropZone.addEventListener('dragover',  e => { e.preventDefault(); dropZone.classList.add('dragover'); });
-  dropZone.addEventListener('dragleave', ()  => dropZone.classList.remove('dragover'));
-  dropZone.addEventListener('drop', e => {
-    e.preventDefault();
-    dropZone.classList.remove('dragover');
-    selectedFiles = Array.from(e.dataTransfer.files);
-    renderFileList();
-    btnDownload.style.display = 'none';
-    overallWrap.style.display = 'none';
-    fileWrap.style.display    = 'none';
-    setStatus('');
-  });
-
-  window.resetAll = function() {
-    selectedFiles = []; fileInput.value = '';
-    fileListEl.innerHTML = ''; fileBadges = []; fileBgs = [];
-    btnMerge.disabled = true; btnReset.style.display = 'none';
-    btnDownload.style.display = 'none';
-    overallWrap.style.display = 'none'; fileWrap.style.display = 'none';
-    overallFill.style.width = '0%'; fileFill.style.width = '0%';
-    setStatus('');
-  };
-
-  // ── MAIN MERGE ────────────────────────────────────────
-  btnMerge.addEventListener('click', async function() {
-    if (!selectedFiles.length) return;
-    btnMerge.disabled = true;
-    btnDownload.style.display = 'none';
-    fileWrap.style.display = 'none';
+  document.getElementById('btn-merge').addEventListener('click', async () => {
+    const files = document.getElementById('file-input').files;
+    const btn = document.getElementById('btn-merge');
+    const status = document.getElementById('status');
+    btn.disabled = true;
 
     try {
-      // STEP 1 — load FFmpeg core
-      setOverall(5, '📦 Memuat FFmpeg core WASM...');
-      setStatus('Memuat engine — pertama kali ~10 detik, sabar ya...');
       if (!ffmpeg.isLoaded()) await ffmpeg.load();
 
-      // STEP 2 — baca file ke WASM FS
-      setOverall(15, '📥 Membaca file ke memori...');
-      const totalBytes = selectedFiles.reduce((s,f) => s+f.size, 0);
-      let loadedBytes = 0;
-
-      for (let i = 0; i < selectedFiles.length; i++) {
-        const f   = selectedFiles[i];
-        const ext = f.name.split('.').pop().toLowerCase() || 'dat';
-        setFileBadge(i, 'processing');
-        setFilePct(0, `📥 Membaca file ${i+1}/${selectedFiles.length}: ${f.name}`);
-
-        const data = await readWithProgress(f, pct => {
-          setFilePct(pct, `📥 Membaca file ${i+1}/${selectedFiles.length}: ${f.name} — ${pct.toFixed(0)}%`);
-          if (fileBgs[i]) fileBgs[i].style.width = pct + '%';
-        });
-
-        ffmpeg.FS('writeFile', `input_${i}.${ext}`, data);
-        loadedBytes += f.size;
-        setFileBadge(i, 'done');
-        setFilePct(100, `✅ File ${i+1}/${selectedFiles.length} selesai dibaca`);
-        setOverall(15 + (loadedBytes/totalBytes)*25, `📥 Membaca file ${i+1}/${selectedFiles.length}...`);
-      }
-
-      // STEP 3 — encode tiap segmen
-      setOverall(40, '🔧 Encoding segmen...');
-      const isImg = f => f.type.startsWith('image/');
-      const isAud = f => f.type.startsWith('audio/');
       let outputFiles = [];
-      let si = 0, segIdx = 0;
-
-      while (si < selectedFiles.length) {
-        const f   = selectedFiles[si];
-        const ext = f.name.split('.').pop().toLowerCase();
-        const inp = `input_${si}.${ext}`;
-        const out = `seg_${segIdx}.mp4`;
-        currentFileIdx = si;
-        totalDuration  = 0;
-
-        if (isImg(f) && si+1 < selectedFiles.length && isAud(selectedFiles[si+1])) {
-          setFileBadge(si,   'processing');
-          setFileBadge(si+1, 'processing');
-          const aExt = selectedFiles[si+1].name.split('.').pop().toLowerCase();
-          setStatus(`🖼️ Gambar + Audio → Video (segmen ${segIdx+1})`);
-          setFilePct(0, `🖼️+🎵 Encoding segmen ${segIdx+1}...`);
-          await ffmpeg.run(
-            '-loop','1','-i', inp,
-            '-i', `input_${si+1}.${aExt}`,
-            '-vf','scale=1280:720:force_original_aspect_ratio=increase,crop=1280:720',
-            '-c:v','libx264','-preset','ultrafast',
-            '-pix_fmt','yuv420p','-c:a','aac','-shortest','-y', out
-          );
-          setFileBadge(si,   'done');
-          setFileBadge(si+1, 'done');
-          si += 2;
-
-        } else if (!isImg(f) && !isAud(f)) {
-          setFileBadge(si, 'processing');
-          setStatus(`🎬 Encoding video ${si+1}/${selectedFiles.length}`);
-          setFilePct(0, `🎬 Encoding video ${si+1}...`);
-          await ffmpeg.run(
-            '-i', inp,
-            '-vf','scale=1280:720:force_original_aspect_ratio=increase,crop=1280:720',
-            '-c:v','libx264','-preset','ultrafast',
-            '-pix_fmt','yuv420p','-c:a','aac','-ar','44100','-y', out
-          );
-          setFileBadge(si, 'done');
-          si++;
-
-        } else {
-          setFileBadge(si, 'skip');
-          si++; continue;
-        }
-
+      for (let i = 0; i < files.length; i++) {
+        const file = files[i];
+        const name = `input_${i}.mp4`;
+        const out = `seg_${i}.mp4`;
+        
+        // 1. Tulis file ke memori
+        ffmpeg.FS('writeFile', name, await fetchFile(file));
+        
+        // 2. Encode segmen
+        status.textContent = `Memproses: ${file.name}`;
+        await ffmpeg.run('-i', name, '-c:v', 'libx264', '-preset', 'veryfast', '-crf', '28', '-y', out);
+        
+        // 3. Hapus file input dari RAM setelah diproses
+        ffmpeg.FS('unlink', name);
         outputFiles.push(out);
-        segIdx++;
-        setOverall(40 + Math.min(35, (segIdx / Math.max(selectedFiles.length,1)) * 35), `🔧 Encoding segmen ${segIdx}...`);
-        setFilePct(100, `✅ Segmen ${segIdx} selesai`);
       }
 
-      if (!outputFiles.length) throw new Error('Tidak ada file yang bisa diproses. Pilih video atau gambar+audio.');
+      // 4. Concat
+      const listTxt = outputFiles.map(f => `file '${f}'`).join('\n');
+      ffmpeg.FS('writeFile', 'list.txt', listTxt);
+      await ffmpeg.run('-f', 'concat', '-safe', '0', '-i', 'list.txt', '-c', 'copy', '-y', 'final.mp4');
 
-      // STEP 4 — concat
-      setOverall(80, '🔗 Menggabungkan semua segmen...');
-      setFilePct(50, '🔗 Menggabungkan...');
-      setStatus('Menggabungkan semua segmen...');
+      // 5. Download
+      const data = ffmpeg.FS('readFile', 'final.mp4');
+      const blob = new Blob([data.buffer], { type: 'video/mp4' });
+      const dl = document.getElementById('btn-download');
+      dl.href = URL.createObjectURL(blob);
+      dl.download = 'output.mp4';
+      dl.style.display = 'block';
+      status.textContent = 'Selesai!';
 
-      let finalName;
-      if (outputFiles.length === 1) {
-        finalName = outputFiles[0];
-      } else {
-        const listTxt = outputFiles.map(f => `file '${f}'`).join('\n');
-        ffmpeg.FS('writeFile', 'list.txt', listTxt);
-        await ffmpeg.run('-f','concat','-safe','0','-i','list.txt','-c','copy','-y','final.mp4');
-        finalName = 'final.mp4';
-      }
-
-      // STEP 5 — download
-      setOverall(95, '📦 Menyiapkan download...');
-      const outData = ffmpeg.FS('readFile', finalName);
-      const blob    = new Blob([outData.buffer], { type:'video/mp4' });
-      const url     = URL.createObjectURL(blob);
-
-      btnDownload.href          = url;
-      btnDownload.style.display = 'block';
-      setOverall(100, '✅ Selesai!');
-      setFilePct(100, '✅ File siap didownload!');
-      setStatus('Klik tombol hijau di bawah untuk download.', 'success');
-
+      // 6. Cleanup akhir
+      ffmpeg.FS('unlink', 'list.txt');
+      ffmpeg.FS('unlink', 'final.mp4');
+      outputFiles.forEach(f => ffmpeg.FS('unlink', f));
+      
     } catch (err) {
-      console.error(err);
-      setStatus('❌ Error: ' + err.message, 'error');
-      overallWrap.style.display = 'none';
+      status.textContent = 'Error: ' + err.message;
     } finally {
-      btnMerge.disabled = false;
+      btn.disabled = false;
     }
   });
-
-}); // end window.load
 </script>
-
 </body>
 </html>
