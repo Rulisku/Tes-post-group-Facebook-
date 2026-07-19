@@ -12,16 +12,19 @@ jobs:
   proses:
     runs-on: ubuntu-latest
     steps:
-      - name: Setup & Download
+      - name: Setup & Download (Super Instan)
         run: |
-          # 1. Menghilangkan apt-get update dan menambahkan -qq agar instalasi instan
-          sudo apt-get install -y -qq ffmpeg megatools gpac bc
-          
-          # 2. Memakai --no-deps agar pip tidak membuang waktu mengunduh dependencies tambahan
-          pip install gdown --no-deps -q
-          
+          # 1. Buat folder kerja terlebih dahulu
           mkdir -p downloads ready
           
+          # 2. Gunakan FFmpeg bawaan GitHub. Hanya install paket pendukung yang belum ada.
+          # Menggunakan ampersand (&) di akhir agar berjalan di background secara paralel
+          sudo apt-get install -y -qq --no-install-recommends gpac megatools bc > /dev/null 2>&1 &
+          
+          # 3. Install gdown instan tanpa dependencies tambahan
+          pip install gdown --no-deps -q
+          
+          # 4. Proses Download Utama langsung berjalan bersamaan dengan instalasi di atas
           URLS=$(echo "${{ github.event.inputs.urls }}" | tr ',' ' ')
           arr=($URLS)
           
@@ -31,15 +34,19 @@ jobs:
             
             output="downloads/raw_$i"
             if [[ "$url" == *"mega.nz"* ]]; then
+              # Pastikan instalasi megatools di background sudah selesai sebelum mendownload dari MEGA
+              wait
               megadl "$url" --path "$output"
             else
-              # 3. Menambahkan --quiet agar log progress bar tidak membebani IO server
               gdown "$url" -O "$output" --quiet
             fi
             
             ext=$(file --mime-type -b "$output" | cut -d/ -f2 | sed 's/jpeg/jpg/')
             mv "$output" "$output.$ext"
           done
+          
+          # Pastikan seluruh proses instalasi background selesai 100% sebelum pindah ke tahap berikutnya
+          wait
 
       - name: Sync & Encode (Super Ringan & Hemat CPU)
         run: |
@@ -118,4 +125,3 @@ jobs:
         with:
           name: final-video
           path: output.mp4
-          
