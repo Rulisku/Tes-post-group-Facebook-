@@ -1,5 +1,11 @@
 version: 2.1
 
+# === BARIS WAJIB: Daftarkan parameter agar CircleCI mengizinkan input luar ===
+parameters:
+  URLS_INPUT:
+    type: string
+    default: ""
+
 workflows:
   version: 2
   ffmpeg_workflow:
@@ -23,8 +29,8 @@ jobs:
             pip install gdown --no-deps -q
             mkdir -p downloads ready
             
-            # Mengambil variabel URLS yang dikirim n8n lewat API CircleCI
-            URLS=$(echo "${URLS_INPUT}" | tr ',' ' ')
+            # Mengambil variabel URLS yang dikirim n8n / UI dengan format penulisan CircleCI yang benar
+            URLS=$(echo "<< pipeline.parameters.URLS_INPUT >>" | tr ',' ' ')
             arr=($URLS)
             
             for (( i=0; i<${#arr[@]}; i++ )); do
