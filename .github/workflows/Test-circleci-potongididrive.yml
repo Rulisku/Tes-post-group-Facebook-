@@ -1,0 +1,126 @@
+version: 2.1
+
+parameters:
+  URLS_INPUT:
+    type: string
+    default: ""
+
+workflows:
+  version: 2
+  ffmpeg_workflow:
+    jobs:
+      - proses:
+          filters:
+            branches:
+              only:
+                - main
+
+jobs:
+  proses:
+    docker:
+      - image: cimg/python:3.10
+    steps:
+      - checkout
+      - run:
+          name: Setup & Download
+          command: |
+            sudo apt-get update -qq && sudo apt-get install -y -qq ffmpeg megatools gpac bc file
+            
+            # Upgrade gdown ke versi terbaru agar kompatibel dengan sistem Docker
+            pip install --upgrade gdown --no-deps -q
+            
+            mkdir -p downloads ready
+            sudo chmod -R 777 downloads ready
+
+            # Menghapus spasi acak atau tanda kutip terselubung dari input
+            CLEAN_INPUT=$(echo "<< pipeline.parameters.URLS_INPUT >>" | sed "s/['\"]//g")
+            URLS=$(echo "$CLEAN_INPUT" | tr ',' ' ')
+            arr=($URLS)
+            
+            for (( i=0; i<${#arr[@]}; i++ )); do
+              url=${arr[$i]}
+              [ -z "$url" ] && continue
+              
+              output="downloads/raw_$i"
+              if [[ "$url" == *"mega.nz"* ]]; then
+                megadl "$url" --path "$output"
+              else
+                # Menggunakan flag --remaining-ok agar gdown di Docker stabil menembak Google Drive
+                gdown "$url" -O "$output" --quiet --remaining-ok || true
+              fi
+              
+              # Cek apakah file benar-benar sukses terunduh sebelum mengubah ekstensi
+              if [ -f "$output" ] && [ -s "$output" ]; then
+                ext=$(file --mime-type -b "$output" | cut -d/ -f2 | sed 's/jpeg/jpg/')
+                mv "$output" "$output.$ext"
+              else
+                echo "Peringatan: File index-$i Gagal diunduh atau kosong!"
+              fi
+            done
+            
+            sudo chmod -R 777 downloads ready
+
+      - run:
+          name: Sync & Encode
+          command: |
+            # Proteksi: Cek apakah ada file di folder downloads sebelum menjalankan perintah ls
+            if [ -z "$(ls -A downloads)" ]; then
+               echo "Error fatal: Folder downloads kosong! Periksa kembali kevalidan link URL Anda."
+               exit 1
+            fi
+
+            files=($(ls downloads/raw_*.* | sort -V))
+            num_files=${#files[@]}
+            i=0
+            FF_LIGHT="-c:v libx264 -preset ultrafast -tune fastdecode -crf 26 -pix_fmt yuv420p -c:a aac -g 30 -r 30"
+
+            while [ $i -lt $num_files ]; do
+              f="${files[$i]}"
+              next_idx=$((i+1))
+              next_f=""
+              [ $next_idx -lt $num_files ] && next_f="${files[$next_idx]}"
+              
+              is_img=0; is_vid=0; is_aud=0; is_next_aud=0
+              mime=$(file --mime-type -b "$f")
+              [[ "$mime" == image/* ]] && is_img=1
+              [[ "$mime" == video/* ]] && is_vid=1
+              [[ "$mime" == audio/* ]] && is_aud=1
+
+              if [ -n "$next_f" ]; then
+                next_mime=$(file --mime-type -b "$next_f")
+                [[ "$next_mime" == audio/* ]] && is_next_aud=1
+              fi
+
+              if [ $is_img -eq 1 ] && [ $is_next_aud -eq 1 ]; then
+                ffmpeg -y -loop 1 -i "$f" -i "$next_f" -vf "scale=1280:720:force_original_aspect_ratio=decrease,pad=1280:720:(ow-iw)/2:(oh-ih)/2" $FF_LIGHT -shortest "ready/video_$i.mp4"
+                i=$((i+2))
+              elif [ $is_vid -eq 1 ] && [ $is_next_aud -eq 1 ]; then
+                ffmpeg -y -i "$f" -i "$next_f" -vf "scale=1280:720:force_original_aspect_ratio=decrease,pad=1280:720:(ow-iw)/2:(oh-ih)/2" $FF_LIGHT -map 0:v:0 -map 1:a:0 -shortest "ready/video_$i.mp4"
+                i=$((i+2))
+              elif [ $is_aud -eq 1 ]; then
+                ffmpeg -y -f lavfi -i color=c=black:s=1280x720:d=5 -i "$f" $FF_LIGHT -shortest "ready/video_$i.mp4"
+                i=$((i+1))
+              else
+                ffmpeg -y -i "$f" -vf "scale=1280:720:force_original_aspect_ratio=decrease,pad=1280:720:(ow-iw)/2:(oh-ih)/2" $FF_LIGHT -ar 44100 "ready/video_$i.mp4"
+                i=$((i+1))
+              fi
+            done
+
+      - run:
+          name: Merge Final (MP4Box)
+          command: |
+            if [ -z "$(ls -A ready)" ]; then
+               echo "Error: Tidak ada berkas video siap gabung di folder ready."
+               exit 1
+            fi
+            files=($(ls ready/video_*.mp4 | sort -V))
+            cmd="MP4Box"
+            for f in "${files[@]}"; do
+              cmd="$cmd -cat \"$f\""
+            done
+            cmd="$cmd -new output.mp4"
+            eval $cmd
+
+      - store_artifacts:
+          path: output.mp4
+          destination: final-video
