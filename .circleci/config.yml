@@ -97,12 +97,12 @@ jobs:
       - run:
           name: Sync & Encode (FFmpeg)
           command: |
-            # SAKELAR PINTAR: Jika link video kosong (berarti ini dipicu otomatis oleh push GitHub, bukan n8n)
-            # Maka skrip akan berhenti di sini dengan status BERHASIL tanpa menganggapnya sebagai error.
+            # SAKELAR PINTAR: Ditambahkan 'exit 0' agar terminal langsung mati seketika dan menghentikan pembacaan ke bawah
             if [ -z "<< pipeline.parameters.video_url >>" ]; then
                echo "Sistem dipicu oleh Git Commit/Push otomatis. Link video kosong."
                echo "Menghentikan build dengan sukses. Menunggu dispatch asli dari n8n..."
                circleci-agent step halt
+               exit 0
             fi
 
             # Proteksi: Cek apakah ada file di folder downloads sebelum menjalankan perintah ls
