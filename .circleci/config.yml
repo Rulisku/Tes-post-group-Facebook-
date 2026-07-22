@@ -241,11 +241,13 @@ jobs:
                exit 1
             fi
 
-            COUNT=$(ls cuts/video | wc -l)
-
+            COUNT=$(ls cuts/video/video_*.mp4 | wc -l)
+            
             for ((i=0;i<COUNT;i++))
             do
 
+            mkdir -p ready
+            
             ffmpeg -y \
             -i cuts/video/video_$i.mp4 \
             -i cuts/audio/audio_$i.mp3 \
@@ -254,7 +256,6 @@ jobs:
             -shortest \
             -c:v libx264 \
             -c:a aac \
-            mkdir -p ready
             ready/video_$i.mp4
 
             done
