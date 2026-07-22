@@ -1,5 +1,5 @@
-            # Proteksi: Cek apakah ada file di folder downloads sebelum menjalankan perintah ls
-            version: 2.1
+            # Proteksi: Cek apakah ada file di folder downloads sebelum menjalankan perinta
+version: 2.1
 
 # 1. Seluruh Parameter yang Dikirim oleh Node HTTP Request n8n
 parameters:
