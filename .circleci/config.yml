@@ -1,19 +1,50 @@
-version: 2.1
+            # Proteksi: Cek apakah ada file di folder downloads sebelum menjalankan perintah ls
+            version: 2.1
 
+# 1. Seluruh Parameter yang Dikirim oleh Node HTTP Request n8n
 parameters:
-  URLS_INPUT:
+  video_url:
     type: string
     default: ""
-
-workflows:
-  version: 2
-  ffmpeg_workflow:
-    jobs:
-      - proses:
-          filters:
-            branches:
-              only:
-                - main
+  timestamps:
+    type: string
+    default: ""
+  audio_url:
+    type: string
+    default: ""
+  audio_timestamps:
+    type: string
+    default: ""
+  videoTitle:
+    type: string
+    default: ""
+  videoDescription:
+    type: string
+    default: ""
+  tags:
+    type: string
+    default: ""
+  channelName:
+    type: string
+    default: ""
+  location:
+    type: string
+    default: ""
+  aiContent:
+    type: string
+    default: ""
+  ageRestriction:
+    type: string
+    default: ""
+  audience:
+    type: string
+    default: ""
+  publishDate:
+    type: string
+    default: ""
+  videoTime:
+    type: string
+    default: ""
 
 jobs:
   proses:
@@ -21,6 +52,7 @@ jobs:
       - image: cimg/python:3.10
     steps:
       - checkout
+      
       - run:
           name: Setup & Download
           command: |
@@ -32,9 +64,12 @@ jobs:
             mkdir -p downloads ready
             sudo chmod -R 777 downloads ready
 
-            # Menghapus spasi acak atau tanda kutip terselubung dari input
-            CLEAN_INPUT=$(echo "<< pipeline.parameters.URLS_INPUT >>" | sed "s/['\"]//g")
-            URLS=$(echo "$CLEAN_INPUT" | tr ',' ' ')
+            # Gabungkan input url video dan audio menjadi satu baris array untuk diunduh
+            V_INPUT=$(echo "<< pipeline.parameters.video_url >>" | sed "s/['\"]//g")
+            A_INPUT=$(echo "<< pipeline.parameters.audio_url >>" | sed "s/['\"]//g")
+            
+            # Satukan dengan pemisah koma, lalu ubah jadi spasi untuk perulangan Bash
+            URLS=$(echo "$V_INPUT,$A_INPUT" | tr ',' ' ')
             arr=($URLS)
             
             for (( i=0; i<${#arr[@]}; i++ )); do
@@ -61,7 +96,7 @@ jobs:
             sudo chmod -R 777 downloads ready
 
       - run:
-          name: Sync & Encode
+          name: Sync & Encode (FFmpeg)
           command: |
             # Proteksi: Cek apakah ada file di folder downloads sebelum menjalankan perintah ls
             if [ -z "$(ls -A downloads)" ]; then
@@ -121,6 +156,36 @@ jobs:
             cmd="$cmd -new output.mp4"
             eval $cmd
 
+      - run:
+          name: Posting ke YouTube Otomatis
+          command: |
+            # Memanggil skrip python upload dengan seluruh parameter metadata kiriman n8n
+            python upload.py \
+              --video "output.mp4" \
+              --title "<< pipeline.parameters.videoTitle >>" \
+              --desc "<< pipeline.parameters.videoDescription >>" \
+              --tags "<< pipeline.parameters.tags >>" \
+              --channel "<< pipeline.parameters.channelName >>" \
+              --location "<< pipeline.parameters.location >>" \
+              --ai "<< pipeline.parameters.aiContent >>" \
+              --restriction "<< pipeline.parameters.ageRestriction >>" \
+              --audience "<< pipeline.parameters.audience >>" \
+              --date "<< pipeline.parameters.publishDate >>" \
+              --time "<< pipeline.parameters.videoTime >>" \
+              --timestamps "<< pipeline.parameters.timestamps >>" \
+              --audio_timestamps "<< pipeline.parameters.audio_timestamps >>"
+
       - store_artifacts:
           path: output.mp4
           destination: final-video
+
+# 3. Alur Kerja Utama yang Diletakkan di Bagian Paling Bawah
+workflows:
+  ffmpeg_workflow:
+    jobs:
+      - proses:
+          filters:
+            branches:
+              only:
+                - main
+                
