@@ -124,7 +124,7 @@ jobs:
 
             mkdir -p cuts/video
             VIDEO_TS="<< pipeline.parameters.timestamps >>"
-            IFS=',' read -ra PARTS <<< "$VIDEO_TS"
+            IFS=',' read -ra PARTS \<<< "$VIDEO_TS"
 
             for ((i=0;i<${#PARTS[@]};i++))
             do
@@ -140,7 +140,7 @@ jobs:
             mkdir -p cuts/audio
             AUDIO_TS="<< pipeline.parameters.audio_timestamps >>"
             AUDIO_FILE=$(find downloads -maxdepth 1 -name "raw_1.*" | head -n1)
-            IFS=',' read -ra PARTS <<< "$AUDIO_TS"
+            IFS=',' read -ra PARTS \<<< "$AUDIO_TS"
 
             for ((i=0;i<${#PARTS[@]};i++))
             do
