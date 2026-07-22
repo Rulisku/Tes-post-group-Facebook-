@@ -183,6 +183,24 @@ jobs:
             cmd="$cmd -new output.mp4"
             eval $cmd
 
+       - run:
+          name: Send Video to Telegram
+          command: |
+            if [ ! -f output.mp4 ]; then
+              echo "output.mp4 tidak ditemukan"
+              exit 1
+            fi
+
+            echo "Mengirim video ke Telegram..."
+
+            curl -F "video=@output.mp4" \
+              -F "chat_id=$TELEGRAM_CHAT_ID" \
+              -F "caption=🚀 Video Baru Selesai Dirender!
+
+           📌 Judul: << pipeline.parameters.videoTitle >>" \
+              -F "parse_mode=Markdown" \
+              "https://api.telegram.org/bot${TELEGRAM_BOT_TOKEN}/sendVideo"
+
       - run:
           name: Posting ke YouTube Otomatis
           command: |
@@ -201,9 +219,9 @@ jobs:
               --timestamps "<< pipeline.parameters.timestamps >>" \
               --audio_timestamps "<< pipeline.parameters.audio_timestamps >>"
 
-      - store_artifacts:
-          path: output.mp4
-          destination: final-video
+     # - store_artifacts:
+       #   path: output.mp4
+        #  destination: final-video
 
 workflows:
   ffmpeg_workflow:
