@@ -183,7 +183,7 @@ jobs:
             cmd="$cmd -new output.mp4"
             eval $cmd
 
-       - run:
+    - run:
           name: Send Video to Telegram
           command: |
             if [ ! -f output.mp4 ]; then
