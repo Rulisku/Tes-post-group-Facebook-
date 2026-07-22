@@ -51,47 +51,128 @@ jobs:
       - image: cimg/python:3.10
     steps:
       - checkout
-      
+
       - run:
           name: Setup & Download
           command: |
             sudo apt-get update -qq && sudo apt-get install -y -qq ffmpeg megatools gpac bc file
-            
+
             # Upgrade gdown ke versi terbaru agar kompatibel dengan sistem Docker
             pip install --upgrade gdown --no-deps -q
-            
+
             mkdir -p downloads ready
             sudo chmod -R 777 downloads ready
+
+            # ---------------------------------------------------------------
+            # Fungsi download universal: Google Drive, Mega.nz, URL HTTP biasa
+            # ---------------------------------------------------------------
+            download_file() {
+              local url="$1"
+              local output="$2"
+
+              echo "Downloading: $url"
+
+              if [[ "$url" == *"mega.nz"* ]]; then
+                  megadl "$url" --path downloads/
+                  file=$(find downloads -maxdepth 1 -type f | head -n1)
+                  [ -z "$file" ] && { echo "Mega download gagal"; exit 1; }
+                  mv "$file" "$output"
+
+              elif [[ "$url" == *"drive.google.com"* ]]; then
+
+                  FILE_ID=$(echo "$url" | sed -n 's#.*\/d\/\([^/]*\)\/.*#\1#p')
+
+                  if [ -z "$FILE_ID" ]; then
+                      FILE_ID=$(echo "$url" | sed -n 's#.*id=\([^&]*\).*#\1#p')
+                  fi
+
+                  [ -z "$FILE_ID" ] && {
+                      echo "Tidak bisa membaca Google Drive File ID"
+                      exit 1
+                  }
+
+                  gdown "https://drive.google.com/uc?id=$FILE_ID" \
+                    -O "$output" \
+                    --fuzzy
+
+              else
+
+                  curl -L "$url" -o "$output"
+
+              fi
+
+              if [ ! -s "$output" ]; then
+                  echo "Download gagal:"
+                  echo "$url"
+                  exit 1
+              fi
+            }
 
             # Gabungkan input url video dan audio menjadi satu baris array untuk diunduh
             V_INPUT=$(echo "<< pipeline.parameters.video_url >>" | sed "s/['\"]//g")
             A_INPUT=$(echo "<< pipeline.parameters.audio_url >>" | sed "s/['\"]//g")
-            
-            # Satukan dengan pemisah koma, lalu ubah jadi spasi untuk perulangan Bash
+
             URLS=$(echo "$V_INPUT,$A_INPUT" | tr ',' ' ')
             arr=($URLS)
-            
-            for (( i=0; i<${#arr[@]}; i++ )); do
-              url=${arr[$i]}
-              [ -z "$url" ] && continue
-              
-              output="downloads/raw_$i"
-              if [[ "$url" == *"mega.nz"* ]]; then
-                megadl "$url" --path "$output"
-              else
-                # Menggunakan flag --remaining-ok agar gdown di Docker stabil menembak Google Drive
-                gdown "$url" -O "$output" --quiet --remaining-ok || true
-              fi
-              
-              # Cek apakah file benar-benar sukses terunduh sebelum mengubah ekstensi
-              if [ -f "$output" ] && [ -s "$output" ]; then
-                ext=$(file --mime-type -b "$output" | cut -d/ -f2 | sed 's/jpeg/jpg/')
+
+            for (( i=0; i<${#arr[@]}; i++ ))
+            do
+                url="${arr[$i]}"
+                [ -z "$url" ] && continue
+
+                output="downloads/raw_$i"
+
+                download_file "$url" "$output"
+
+                mime=$(file --mime-type -b "$output")
+
+                case "$mime" in
+                    image/jpeg)
+                        ext=jpg
+                        ;;
+                    image/png)
+                        ext=png
+                        ;;
+                    image/webp)
+                        ext=webp
+                        ;;
+                    video/mp4)
+                        ext=mp4
+                        ;;
+                    video/x-matroska)
+                        ext=mkv
+                        ;;
+                    video/webm)
+                        ext=webm
+                        ;;
+                    audio/mpeg)
+                        ext=mp3
+                        ;;
+                    audio/wav)
+                        ext=wav
+                        ;;
+                    audio/x-wav)
+                        ext=wav
+                        ;;
+                    audio/mp4)
+                        ext=m4a
+                        ;;
+                    audio/aac)
+                        ext=aac
+                        ;;
+                    *)
+                        ext=bin
+                        ;;
+                esac
+
                 mv "$output" "$output.$ext"
-              else
-                echo "Peringatan: File index-$i Gagal diunduh atau kosong!"
-              fi
+
             done
-            
+
+            echo "========== HASIL DOWNLOAD =========="
+            ls -lah downloads
+            echo "===================================="
+
             sudo chmod -R 777 downloads ready
 
       - run:
@@ -121,7 +202,7 @@ jobs:
               next_idx=$((i+1))
               next_f=""
               [ $next_idx -lt $num_files ] && next_f="${files[$next_idx]}"
-              
+
               is_img=0; is_vid=0; is_aud=0; is_next_aud=0
               mime=$(file --mime-type -b "$f")
               [[ "$mime" == image/* ]] && is_img=1
