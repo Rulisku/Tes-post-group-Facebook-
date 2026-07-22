@@ -48,16 +48,21 @@ parameters:
 jobs:
   proses:
     docker:
-      - image: cimg/python:3.10
+      - image: cimg/python:3.12
     steps:
       - checkout
       - run:
           name: Setup & Download
           command: |
-            sudo apt-get update -qq && sudo apt-get install -y -qq ffmpeg megatools gpac bc file
-            pip install -q gdown
-            mkdir -p downloads ready
-            sudo chmod -R 777 downloads ready
+           echo "STEP 1"
+           sudo apt-get update
+           echo "STEP 2"
+           sudo apt-get install -y -qq ffmpeg megatools gpac bc file
+           echo "STEP 3"
+           pip install -q gdown
+           mkdir -p downloads ready
+           echo "STEP 4"
+           sudo chmod -R 777 downloads ready
 
             download_file() {
               local url="$1"
