@@ -193,20 +193,20 @@ jobs:
 
             for ((i=0;i<${#PARTS[@]};i++))
             do
-             START=$(echo "${PARTS[$i]}" | cut -d- -f1)
-             END=$(echo "${PARTS[$i]}" | cut -d- -f2)
+              START=$(echo "${PARTS[$i]}" | cut -d- -f1)
+              END=$(echo "${PARTS[$i]}" | cut -d- -f2)
 
-             VIDEO_FILE=$(find downloads -maxdepth 1 -name "raw_0.*" | head -n1)
+              VIDEO_FILE=$(find downloads -maxdepth 1 -name "raw_0.*" | head -n1)
 
-             ffmpeg -y \
-             -ss "$START" \
-             -to "$END" \
-             -i "$VIDEO_FILE" \
-             -c:v libx264 \
-             -c:a aac \
-             cuts/video/video_$i.mp4
+              ffmpeg -y \
+              -ss "$START" \
+              -to "$END" \
+              -i "$VIDEO_FILE" \
+              -c:v libx264 \
+              -c:a aac \
+              cuts/video/video_$i.mp4
 
-             done
+            done
 
       - run:
           name: Cut Audio By Timestamp
@@ -216,6 +216,7 @@ jobs:
             AUDIO_TS="<< pipeline.parameters.audio_timestamps >>"
 
             IFS=',' read -ra PARTS <<< "$AUDIO_TS"
+            
             for ((i=0;i<${#PARTS[@]};i++))
             do
               START=$(echo "${PARTS[$i]}" | cut -d- -f1)
@@ -230,7 +231,7 @@ jobs:
               -c:a aac \
               cuts/audio/audio_$i.mp3
 
-              done
+            done
             
       - run:
           name: Sync & Encode (FFmpeg)
@@ -246,19 +247,19 @@ jobs:
             for ((i=0;i<COUNT;i++))
             do
 
-            mkdir -p ready
+              mkdir -p ready
             
-            ffmpeg -y \
-            -i cuts/video/video_$i.mp4 \
-            -i cuts/audio/audio_$i.mp3 \
-            -map 0:v \
-            -map 1:a \
-            -shortest \
-            -c:v libx264 \
-            -c:a aac \
-            ready/video_$i.mp4
+              ffmpeg -y \
+              -i cuts/video/video_$i.mp4 \
+              -i cuts/audio/audio_$i.mp3 \
+              -map 0:v \
+              -map 1:a \
+              -shortest \
+              -c:v libx264 \
+              -c:a aac \
+              ready/video_$i.mp4
 
-            done
+             done
 
       - run:
           name: Merge Final (MP4Box)
