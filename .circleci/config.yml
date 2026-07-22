@@ -229,7 +229,7 @@ jobs:
               -to "$END" \
               -i "$AUDIO_FILE" \
               -c:a aac \
-              cuts/audio/audio_$i.mp3
+              cuts/audio/audio_$i.m4a
 
             done
 
@@ -251,7 +251,7 @@ jobs:
 
               ffmpeg -y \
               -i cuts/video/video_$i.mp4 \
-              -i cuts/audio/audio_$i.mp3 \
+              -i cuts/audio/audio_$i.m4a \
               -map 0:v \
               -map 1:a \
               -shortest \
