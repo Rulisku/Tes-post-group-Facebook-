@@ -216,7 +216,7 @@ jobs:
             AUDIO_TS="<< pipeline.parameters.audio_timestamps >>"
 
             IFS=',' read -ra PARTS \<<< "$AUDIO_TS"
-            
+
             for ((i=0;i<${#PARTS[@]};i++))
             do
               START=$(echo "${PARTS[$i]}" | cut -d- -f1)
@@ -232,7 +232,7 @@ jobs:
               cuts/audio/audio_$i.mp3
 
             done
-            
+
       - run:
           name: Sync & Encode (FFmpeg)
           command: |
@@ -243,12 +243,12 @@ jobs:
             fi
 
             COUNT=$(ls cuts/video/video_*.mp4 | wc -l)
-            
+
             for ((i=0;i<COUNT;i++))
             do
 
               mkdir -p ready
-            
+
               ffmpeg -y \
               -i cuts/video/video_$i.mp4 \
               -i cuts/audio/audio_$i.mp3 \
