@@ -228,19 +228,20 @@ jobs:
               START=$(echo "${PARTS[$i]}" | cut -d- -f1)
               END=$(echo "${PARTS[$i]}" | cut -d- -f2)
 
-              
               ffmpeg -y \
               -i "$AUDIO_FILE" \
               -ss "$START" \
               -to "$END" \
               -c:a aac \
               cuts/audio/audio_$i.m4a
-              if [ ! -s cuts/audio/audio_$i.m4a ]; then
-             echo "Audio segment $i gagal dibuat"
-             exit 1
-           fi
+             
+            if [ ! -s cuts/audio/audio_$i.m4a ]; then
+              echo "Audio segment $i gagal dibuat"
+              exit 1
+              
+             fi
 
-            done
+           done
 
       - run:
           name: Sync & Encode (FFmpeg)
