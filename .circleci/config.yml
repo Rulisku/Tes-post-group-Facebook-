@@ -193,20 +193,20 @@ jobs:
 
             for ((i=0;i<${#PARTS[@]};i++))
             do
-           START=$(echo "${PARTS[$i]}" | cut -d- -f1)
-           END=$(echo "${PARTS[$i]}" | cut -d- -f2)
+             START=$(echo "${PARTS[$i]}" | cut -d- -f1)
+             END=$(echo "${PARTS[$i]}" | cut -d- -f2)
 
-           VIDEO_FILE=$(find downloads -maxdepth 1 -name "raw_0.*" | head -n1)
+             VIDEO_FILE=$(find downloads -maxdepth 1 -name "raw_0.*" | head -n1)
 
-           ffmpeg -y \
-           -ss "$START" \
-           -to "$END" \
-           -i "$VIDEO_FILE" \
-           -c:v libx264 \
-           -c:a aac \
-           cuts/video/video_$i.mp4
+             ffmpeg -y \
+             -ss "$START" \
+             -to "$END" \
+             -i "$VIDEO_FILE" \
+             -c:v libx264 \
+             -c:a aac \
+             cuts/video/video_$i.mp4
 
-           done
+             done
 
       - run:
           name: Cut Audio By Timestamp
@@ -221,16 +221,16 @@ jobs:
               START=$(echo "${PARTS[$i]}" | cut -d- -f1)
               END=$(echo "${PARTS[$i]}" | cut -d- -f2)
 
-             AUDIO_FILE=$(find downloads -maxdepth 1 -name "raw_1.*" | head -n1)
+              AUDIO_FILE=$(find downloads -maxdepth 1 -name "raw_1.*" | head -n1)
 
-            ffmpeg -y \
-           -ss "$START" \
-           -to "$END" \
-           -i "$AUDIO_FILE" \
-           -c:a aac \
-           cuts/audio/audio_$i.mp3
+              ffmpeg -y \
+              -ss "$START" \
+              -to "$END" \
+              -i "$AUDIO_FILE" \
+              -c:a aac \
+              cuts/audio/audio_$i.mp3
 
-           done
+              done
             
       - run:
           name: Sync & Encode (FFmpeg)
