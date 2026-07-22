@@ -18,7 +18,7 @@ jobs:
           sudo apt-get install -y -qq ffmpeg megatools gpac bc
           
           # 2. Memakai --no-deps agar pip tidak membuang waktu mengunduh dependencies tambahan
-          pip install gdown --no-deps -q
+          pip install -q gdown
           
           mkdir -p downloads ready
           
