@@ -121,9 +121,11 @@ jobs:
                circleci-agent step halt
                exit 0
             fi
+
             mkdir -p cuts/video
             VIDEO_TS="<< pipeline.parameters.timestamps >>"
             IFS=',' read -ra PARTS \<<< "$VIDEO_TS"
+
             for ((i=0;i<${#PARTS[@]};i++))
             do
               START=$(echo "${PARTS[$i]}" | cut -d- -f1)
@@ -139,11 +141,13 @@ jobs:
             AUDIO_TS="<< pipeline.parameters.audio_timestamps >>"
             AUDIO_FILE=$(find downloads -maxdepth 1 -name "raw_1.*" | head -n1)
             IFS=',' read -ra PARTS \<<< "$AUDIO_TS"
+
             for ((i=0;i<${#PARTS[@]};i++))
             do
               START=$(echo "${PARTS[$i]}" | cut -d- -f1)
               END=$(echo "${PARTS[$i]}" | cut -d- -f2)
               ffmpeg -y -i "$AUDIO_FILE" -ss "$START" -to "$END" -c:a aac cuts/audio/audio_$i.m4a
+              
               if [ ! -s cuts/audio/audio_$i.m4a ]; then
                 echo "Audio segment $i gagal dibuat"
                 exit 1
@@ -165,7 +169,7 @@ jobs:
             done
 
       - run:
-          name: Merge Final (MP4Box)
+          name: "Merge Final (MP4Box)"
           command: |
             if [ -z "$(ls -A ready)" ]; then
                echo "Error: Tidak ada berkas video siap gabung."
@@ -178,20 +182,6 @@ jobs:
             done
             cmd="$cmd -new output.mp4"
             eval $cmd
-
-      - run:
-          name: Send Video to Telegram
-          command: |
-            if [ ! -f output.mp4 ]; then
-              echo "output.mp4 tidak ditemukan"
-              exit 1
-            fi
-            echo "Mengirim video ke Telegram..."
-            curl -F "video=@output.mp4" \
-              -F "chat_id=$TELEGRAM_CHAT_ID" \
-              -F "caption=🚀 Video Baru Selesai Dirender! Judul: << pipeline.parameters.videoTitle >>" \
-              -F "parse_mode=Markdown" \
-              "https://api.telegram.org/bot${TELEGRAM_BOT_TOKEN}/sendVideo"
 
       - run:
           name: Posting ke YouTube Otomatis
@@ -210,6 +200,10 @@ jobs:
               --time "<< pipeline.parameters.videoTime >>" \
               --timestamps "<< pipeline.parameters.timestamps >>" \
               --audio_timestamps "<< pipeline.parameters.audio_timestamps >>"
+
+      - store_artifacts:
+          path: output.mp4
+          destination: final-video
 
 workflows:
   ffmpeg_workflow:
