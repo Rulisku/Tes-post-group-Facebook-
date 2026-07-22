@@ -189,7 +189,7 @@ jobs:
 
             VIDEO_TS="<< pipeline.parameters.timestamps >>"
 
-            IFS=',' read -ra PARTS \<<< "$VIDEO_TS"
+            IFS=',' read -ra PARTS <<< "$VIDEO_TS"
 
             for ((i=0;i<${#PARTS[@]};i++))
             do
@@ -221,7 +221,7 @@ jobs:
             echo "AUDIO_FILE=$AUDIO_FILE"
             ffprobe "$AUDIO_FILE"
 
-            IFS=',' read -ra PARTS \<<< "$AUDIO_TS"
+            IFS=',' read -ra PARTS <<< "$AUDIO_TS"
 
             for ((i=0;i<${#PARTS[@]};i++))
             do
