@@ -91,10 +91,8 @@ jobs:
                   }
 
                   gdown "https://drive.google.com/uc?id=$FILE_ID" \
-                    -O "$output" \
-                    --fuzzy
-
-              else
+                    -O "$output"
+                else
 
                   curl -L "$url" -o "$output"
 
