@@ -173,9 +173,11 @@ jobs:
             sudo chmod -R 777 downloads ready
 
       - run:
-          name: Sync & Encode (FFmpeg)
+          name: Cut Video By Timestamp
           command: |
-            # SAKELAR PINTAR: Ditambahkan 'exit 0' agar terminal langsung mati seketika dan menghentikan pembacaan ke bawah
+            # SAKELAR PINTAR dipindah ke sini (paling awal setelah Download),
+            # biar pipeline langsung halt aman kalau dipicu git push biasa,
+            # SEBELUM sempat coba potong file yang ga ada.
             if [ -z "<< pipeline.parameters.video_url >>" ]; then
                echo "Sistem dipicu oleh Git Commit/Push otomatis. Link video kosong."
                echo "Menghentikan build dengan sukses. Menunggu dispatch asli dari n8n..."
@@ -183,47 +185,78 @@ jobs:
                exit 0
             fi
 
-            # Proteksi: Cek apakah ada file di folder downloads sebelum menjalankan perintah ls
-            if [ -z "$(ls -A downloads)" ]; then
-               echo "Error fatal: Folder downloads kosong! Periksa kembali kevalidan link URL Anda."
+            mkdir -p cuts/video
+
+            VIDEO_TS="<< pipeline.parameters.timestamps >>"
+
+            IFS=',' read -ra PARTS <<< "$VIDEO_TS"
+
+            for ((i=0;i<${#PARTS[@]};i++))
+            do
+           START=$(echo "${PARTS[$i]}" | cut -d- -f1)
+           END=$(echo "${PARTS[$i]}" | cut -d- -f2)
+
+           VIDEO_FILE=$(find downloads -maxdepth 1 -name "raw_0.*" | head -n1)
+
+           ffmpeg -y \
+           -ss "$START" \
+           -to "$END" \
+           -i "$VIDEO_FILE" \
+           -c:v libx264 \
+           -c:a aac \
+           cuts/video/video_$i.mp4
+
+           done
+
+      - run:
+          name: Cut Audio By Timestamp
+          command: |
+            mkdir -p cuts/audio
+
+            AUDIO_TS="<< pipeline.parameters.audio_timestamps >>"
+
+            IFS=',' read -ra PARTS <<< "$AUDIO_TS"
+            for ((i=0;i<${#PARTS[@]};i++))
+            do
+              START=$(echo "${PARTS[$i]}" | cut -d- -f1)
+              END=$(echo "${PARTS[$i]}" | cut -d- -f2)
+
+             AUDIO_FILE=$(find downloads -maxdepth 1 -name "raw_1.*" | head -n1)
+
+            ffmpeg -y \
+           -ss "$START" \
+           -to "$END" \
+           -i "$AUDIO_FILE" \
+           -c:a aac \
+           cuts/audio/audio_$i.mp3
+
+           done
+            
+      - run:
+          name: Sync & Encode (FFmpeg)
+          command: |
+            # Proteksi: Cek apakah ada hasil potongan video sebelum lanjut
+            if [ -z "$(ls -A cuts/video 2>/dev/null)" ]; then
+               echo "Error fatal: Folder cuts/video kosong! Periksa kembali timestamps & URL video Anda."
                exit 1
             fi
 
-            files=($(ls downloads/raw_*.* | sort -V))
-            num_files=${#files[@]}
-            i=0
-            FF_LIGHT="-c:v libx264 -preset ultrafast -tune fastdecode -crf 26 -pix_fmt yuv420p -c:a aac -g 30 -r 30"
+            COUNT=$(ls cuts/video | wc -l)
 
-            while [ $i -lt $num_files ]; do
-              f="${files[$i]}"
-              next_idx=$((i+1))
-              next_f=""
-              [ $next_idx -lt $num_files ] && next_f="${files[$next_idx]}"
+            for ((i=0;i<COUNT;i++))
+            do
 
-              is_img=0; is_vid=0; is_aud=0; is_next_aud=0
-              mime=$(file --mime-type -b "$f")
-              [[ "$mime" == image/* ]] && is_img=1
-              [[ "$mime" == video/* ]] && is_vid=1
-              [[ "$mime" == audio/* ]] && is_aud=1
+            ffmpeg -y \
+            -i cuts/video/video_$i.mp4 \
+            -i cuts/audio/audio_$i.mp3 \
+            -map 0:v \
+            -map 1:a \
+            -shortest \
+            -c:v libx264 \
+            -c:a aac \
+            mkdir -p ready
+            ready/video_$i.mp4
 
-              if [ -n "$next_f" ]; then
-                next_mime=$(file --mime-type -b "$next_f")
-                [[ "$next_mime" == audio/* ]] && is_next_aud=1
-              fi
-
-              if [ $is_img -eq 1 ] && [ $is_next_aud -eq 1 ]; then
-                ffmpeg -y -loop 1 -i "$f" -i "$next_f" -vf "scale=1280:720:force_original_aspect_ratio=decrease,pad=1280:720:(ow-iw)/2:(oh-ih)/2" $FF_LIGHT -shortest "ready/video_$i.mp4"
-                i=$((i+2))
-              elif [ $is_vid -eq 1 ] && [ $is_next_aud -eq 1 ]; then
-                ffmpeg -y -i "$f" -i "$next_f" -vf "scale=1280:720:force_original_aspect_ratio=decrease,pad=1280:720:(ow-iw)/2:(oh-ih)/2" $FF_LIGHT -map 0:v:0 -map 1:a:0 -shortest "ready/video_$i.mp4"
-                i=$((i+2))
-              elif [ $is_aud -eq 1 ]; then
-                ffmpeg -y -f lavfi -i color=c=black:s=1280x720:d=5 -i "$f" $FF_LIGHT -shortest "ready/video_$i.mp4"
-                i=$((i+1))
-              else
-                ffmpeg -y -i "$f" -vf "scale=1280:720:force_original_aspect_ratio=decrease,pad=1280:720:(ow-iw)/2:(oh-ih)/2" $FF_LIGHT -ar 44100 "ready/video_$i.mp4"
-                i=$((i+1))
-              fi
             done
 
       - run:
