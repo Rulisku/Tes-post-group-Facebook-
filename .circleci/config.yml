@@ -197,7 +197,7 @@ jobs:
               -F "chat_id=$TELEGRAM_CHAT_ID" \
               -F "caption=🚀 Video Baru Selesai Dirender!
 
-           📌 Judul: << pipeline.parameters.videoTitle >>" \
+            Judul: << pipeline.parameters.videoTitle >>" \
               -F "parse_mode=Markdown" \
               "https://api.telegram.org/bot${TELEGRAM_BOT_TOKEN}/sendVideo"
 
