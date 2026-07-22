@@ -215,6 +215,12 @@ jobs:
 
             AUDIO_TS="<< pipeline.parameters.audio_timestamps >>"
 
+            AUDIO_FILE=$(find downloads -maxdepth 1 -name "raw_1.*" | head -n1)
+
+            echo "AUDIO_TS=$AUDIO_TS"
+            echo "AUDIO_FILE=$AUDIO_FILE"
+            ffprobe "$AUDIO_FILE"
+
             IFS=',' read -ra PARTS \<<< "$AUDIO_TS"
 
             for ((i=0;i<${#PARTS[@]};i++))
@@ -222,14 +228,17 @@ jobs:
               START=$(echo "${PARTS[$i]}" | cut -d- -f1)
               END=$(echo "${PARTS[$i]}" | cut -d- -f2)
 
-              AUDIO_FILE=$(find downloads -maxdepth 1 -name "raw_1.*" | head -n1)
-
+              
               ffmpeg -y \
+              -i "$AUDIO_FILE" \
               -ss "$START" \
               -to "$END" \
-              -i "$AUDIO_FILE" \
               -c:a aac \
               cuts/audio/audio_$i.m4a
+              if [ ! -s cuts/audio/audio_$i.m4a ]; then
+             echo "Audio segment $i gagal dibuat"
+             exit 1
+           fi
 
             done
 
