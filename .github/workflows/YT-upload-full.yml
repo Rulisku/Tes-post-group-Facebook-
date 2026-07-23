@@ -49,6 +49,12 @@ jobs:
   proses:
     runs-on: ubuntu-latest
     steps:
+      - name: Debug Inputs
+        run: |
+         echo "channelName = '${{ github.event.inputs.channelName }}'"
+         echo "publishDate = '${{ github.event.inputs.publishDate }}'"
+         echo "videoTime = '${{ github.event.inputs.videoTime }}'"
+         
       - name: Setup & Download
         run: |
           sudo apt-get update -qq
