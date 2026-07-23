@@ -114,16 +114,10 @@ jobs:
             # KASUS D: VIDEO SAJA
             else
               ffmpeg -y -i "$f" \
-            -filter_complex "\
-             [0:v]split=2[bg][fg];\
-             [bg]scale=1280:720:force_original_aspect_ratio=increase,boxblur=20,crop=1280:720[bg];\
-             [fg]scale='min(iw,1280)':'min(ih,720)':force_original_aspect_ratio=decrease[fg];\
-            [bg][fg]overlay=(W-w)/2:(H-h)/2[v]" \
-             -map "[v]" \
-             -map 0:a? \
-            $FF_LIGHT \
-            -ar 44100 \
-             "ready/video_$i.mp4"
+            ffmpeg -y -i "$f" \
+              -vf "scale=1280:720:force_original_aspect_ratio=decrease,pad=1280:720:(ow-iw)/2
+              :(oh-ih)/2" \
+              $FF_LIGHT -ar 44100 "ready/video_$i.mp4"
               i=$((i+1))
             fi
           done
