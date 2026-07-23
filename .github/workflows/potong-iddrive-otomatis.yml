@@ -93,10 +93,16 @@ jobs:
             # KASUS B: VIDEO + AUDIO
             elif [ $is_vid -eq 1 ] && [ $is_next_aud -eq 1 ]; then
               ffmpeg -y -i "$f" -i "$next_f" \
-              --vf "[0:v]split=2[bg][fg];
-             [bg]scale=1280:720:force_original_aspect_ratio=increase,boxblur=20,crop=1280:720[bg];
-             [fg]scale='min(iw,1280)':'min(ih,720)':force_original_aspect_ratio=decrease[fg];
-             [bg][fg]overlay=(W-w)/2:(H-h)/2"$FF_LIGHT -map 0:v:0 -map 1:a:0 -shortest "ready/video_$i.mp4"
+              -filter_complex "\
+               [0:v]split=2[bg][fg];\
+               [bg]scale=1280:720:force_original_aspect_ratio=increase,boxblur=20,crop=1280:720[bg];\
+               [fg]scale='min(iw,1280)':'min(ih,720)':force_original_aspect_ratio=decrease[fg];\
+               [bg][fg]overlay=(W-w)/2:(H-h)/2[v]" \
+               -map "[v]" \
+               -map 1:a:0 \
+               $FF_LIGHT \
+               -shortest \
+               "ready/video_$i.mp4"
               i=$((i+2))
 
             # KASUS C: AUDIO SAJA
@@ -108,11 +114,16 @@ jobs:
             # KASUS D: VIDEO SAJA
             else
               ffmpeg -y -i "$f" \
-              -vf "[0:v]split=2[bg][fg];
-              [bg]scale=1280:720:force_original_aspect_ratio=increase,boxblur=20,crop=1280:720[bg];
-              [fg]scale='min(iw,1280)':'min(ih,720)':force_original_aspect_ratio=decrease[fg];
-              [bg][fg]overlay=(W-w)/2:(H-h)/2"
-              $FF_LIGHT -ar 44100 "ready/video_$i.mp4"
+            -filter_complex "\
+             [0:v]split=2[bg][fg];\
+             [bg]scale=1280:720:force_original_aspect_ratio=increase,boxblur=20,crop=1280:720[bg];\
+             [fg]scale='min(iw,1280)':'min(ih,720)':force_original_aspect_ratio=decrease[fg];\
+            [bg][fg]overlay=(W-w)/2:(H-h)/2[v]" \
+             -map "[v]" \
+             -map 0:a? \
+            $FF_LIGHT \
+            -ar 44100 \
+             "ready/video_$i.mp4"
               i=$((i+1))
             fi
           done
