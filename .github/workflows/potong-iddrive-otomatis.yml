@@ -68,13 +68,21 @@ jobs:
               # Pilih arah gerak acak
               dir=$((RANDOM % 4))
               if [ $dir -eq 0 ]; then
-                VF="scale=1472:828:force_original_aspect_ratio=increase,crop=640:360:x='(in_w-out_w)*t/10':y='(in_h-out_h)/2'"
+                VF="scale=1280:720:force_original_aspect_ratio=decrease,\
+                 pad=1600:900:(ow-iw)/2:(oh-ih)/2,\
+                  crop=1280:720:x='(in_w-out_w)*t/10':y='(in_h-out_h)/2'"
               elif [ $dir -eq 1 ]; then
-                VF="scale=1472:828:force_original_aspect_ratio=increase,crop=640:360:x='(in_w-out_w)*(1-t/10)':y='(in_h-out_h)/2'"
+                VF="scale=1280:720:force_original_aspect_ratio=decrease,\
+                  pad=1600:900:(ow-iw)/2:(oh-ih)/2,\
+                 crop=1280:720:x='(in_w-out_w)*t/10':y='(in_h-out_h)/2'"
               elif [ $dir -eq 2 ]; then
-                VF="scale=1472:828:force_original_aspect_ratio=increase,crop=640:360:x='(in_w-out_w)/2':y='(in_h-out_h)*t/10'"
-              else
-                VF="scale=1472:828:force_original_aspect_ratio=increase,crop=640:360:x='(in_w-out_w)/2':y='(in_h-out_h)*(1-t/10)'"
+                 VF="scale=1280:720:force_original_aspect_ratio=decrease,\
+                  pad=1600:900:(ow-iw)/2:(oh-ih)/2,\
+                  crop=1280:720:x='(in_w-out_w)*t/10':y='(in_h-out_h)/2'"
+                 else
+                   VF="scale=1280:720:force_original_aspect_ratio=decrease,\
+                  pad=1600:900:(ow-iw)/2:(oh-ih)/2,\
+                  crop=1280:720:x='(in_w-out_w)*t/10':y='(in_h-out_h)/2'"
               fi
 
               ffmpeg -y -loop 1 -i "$f" -i "$next_f" \
@@ -98,7 +106,8 @@ jobs:
             # KASUS D: VIDEO SAJA
             else
               ffmpeg -y -i "$f" \
-              -vf "scale=1280:720:force_original_aspect_ratio=decrease,pad=1280:720:(ow-iw)/2:(oh-ih)/2" \
+              -vf "scale=1280:720:force_original_aspect_ratio=decrease,pad=1280:720:(ow-iw)/2
+              :(oh-ih)/2" \
               $FF_LIGHT -ar 44100 "ready/video_$i.mp4"
               i=$((i+1))
             fi
