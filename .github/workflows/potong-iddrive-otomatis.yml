@@ -113,12 +113,13 @@ jobs:
 
             # KASUS D: VIDEO SAJA
             else
-               ffmpeg -y -i "$f" \
+              ffmpeg -y -i "$f" \
               -vf "scale=1280:720:force_original_aspect_ratio=decrease,pad=1280:720:(ow-iw)/2
               :(oh-ih)/2" \
               $FF_LIGHT -ar 44100 "ready/video_$i.mp4"
               i=$((i+1))
             fi
+           
           done
 
       - name: Merge Final (Pakai MP4Box Instan)
