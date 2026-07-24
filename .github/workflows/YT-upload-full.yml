@@ -131,9 +131,7 @@ jobs:
      
       - name: Sync & Encode (Super Ringan & Hemat CPU)
         run: |
-          WIDTH=${WIDTH}
-          HEIGHT=${HEIGHT}
-
+          
           echo "Mode : $VIDEO_TYPE"
           echo "Ukuran : ${WIDTH}x${HEIGHT}"
           files=($(ls downloads/raw_*.* | sort -V))
@@ -164,26 +162,27 @@ jobs:
               # Pilih arah gerak acak
               dir=$((RANDOM % 4))
 
-              case $dir in
-               0)
-             MOVE="x='(iw-${WIDTH})*t/10':y='(ih-${HEIGHT})/2'"
-              ;;
+            
+             case $dir in
+             0)
+                MOVE="x='(iw-${WIDTH})*t/10':y='(ih-${HEIGHT})/2'"
+                ;;
              1)
-            MOVE="x='(iw-${WIDTH})*(1-t/10)':y='(ih-${HEIGHT})/2'"
-            ;;
-            2)
-             MOVE="x='(iw-${WIDTH})/2':y='(ih-${HEIGHT})*t/10'"
-            ;;
+                 MOVE="x='(iw-${WIDTH})*(1-t/10)':y='(ih-${HEIGHT})/2'"
+                ;;
+             2)
+                 MOVE="x='(iw-${WIDTH})/2':y='(ih-${HEIGHT})*t/10'"
+                ;;
              3)
-          MOVE="x='(iw-${WIDTH})/2':y='(ih-${HEIGHT})*(1-t/10)'"
-          ;;
-           esac
+                 MOVE="x='(iw-${WIDTH})/2':y='(ih-${HEIGHT})*(1-t/10)'"
+                ;;
+                esac
 
-             VF="scale=${WIDTH}:${HEIGHT}:force_original_aspect_ratio=increase,crop=${WIDTH}:${HEIGHT},${MOVE}"
+             VF="scale=${WIDTH}:${HEIGHT}:force_original_aspect_ratio=increase,crop=${WIDTH}:${HEIGHT}:${MOVE},fps=30"
              
 
               ffmpeg -y -loop 1 -i "$f" -i "$next_f" \
-              -vf "$VF,fps=30" \
+              -vf "$VF" \
               $FF_LIGHT -shortest "ready/video_$i.mp4"
               i=$((i+2))
           
@@ -193,7 +192,7 @@ jobs:
               
               ffmpeg -y -i "$f" -i "$next_f" \
               -filter_complex \
-              "[0:v]scale=${WIDTH}:${HEIGHT}:force_original_aspect_ratio=increase,crop=${WIDTH}:${HEIGHT}[v]"" \
+              "[0:v]scale=${WIDTH}:${HEIGHT}:force_original_aspect_ratio=increase,crop=${WIDTH}:${HEIGHT}[v]" \
              -map "[v]" -map 1:a:0 \
              $FF_LIGHT -shortest "ready/video_$i.mp4"
               i=$((i+2))
