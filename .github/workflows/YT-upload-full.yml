@@ -165,20 +165,20 @@ jobs:
             
              case $dir in
              0)
-                MOVE="x='(iw-${WIDTH})*t/10':y='(ih-${HEIGHT})/2'"
+                MOVE="x='(iw-${WIDTH})*t/15':y='(ih-${HEIGHT})/2'"
                 ;;
              1)
-                 MOVE="x='(iw-${WIDTH})*(1-t/10)':y='(ih-${HEIGHT})/2'"
+                 MOVE="x='(iw-${WIDTH})*(1-t/15)':y='(ih-${HEIGHT})/2'"
                 ;;
              2)
-                 MOVE="x='(iw-${WIDTH})/2':y='(ih-${HEIGHT})*t/10'"
+                 MOVE="x='(iw-${WIDTH})/2':y='(ih-${HEIGHT})*t/15'"
                 ;;
              3)
-                 MOVE="x='(iw-${WIDTH})/2':y='(ih-${HEIGHT})*(1-t/10)'"
+                 MOVE="x='(iw-${WIDTH})/2':y='(ih-${HEIGHT})*(1-t/15)'"
                 ;;
                 esac
 
-             VF="scale=${WIDTH}:${HEIGHT}:force_original_aspect_ratio=increase,crop=${WIDTH}:${HEIGHT}:${MOVE},fps=30"
+              VF="scale=iw*1.2:ih*1.2,crop=${WIDTH}:${HEIGHT}:${MOVE},fps=30"
              
 
               ffmpeg -y -loop 1 -i "$f" -i "$next_f" \
