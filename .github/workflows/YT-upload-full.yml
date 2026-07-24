@@ -186,6 +186,21 @@ jobs:
         #  name: final-video
         #  path: output.mp4
 
+      - name: Send Video to Telegram
+        env:
+          TELEGRAM_BOT_TOKEN: ${{ secrets.TELEGRAM_BOT_TOKEN }}
+          TELEGRAM_CHAT_ID: ${{ secrets.TELEGRAM_CHAT_ID }}
+          VIDEO_TITLE: ${{ github.event.inputs.videoTitle }}
+        run: |
+          echo "Memulai pengiriman video ke Telegram..."
+          
+          # Perbaikan struktur pemanggilan URL API Telegram menggunakan variabel env yang aman
+          curl -v -F "video=@video.mp4" \
+            -F "chat_id=$TELEGRAM_CHAT_ID" \
+            -F "caption=🚀 Video Baru Selesai Dirender!%0A%0A📌 *Judul:* $VIDEO_TITLE" \
+            -F "parse_mode=Markdown" \
+            "https://api.telegram.org/bot$TELEGRAM_BOT_TOKEN/sendVideo"
+
       - name: Upload to YouTube
         env:
           # 🌟 TRIK DINAMIS: Menyusun nama rahasia secara otomatis berdasarkan input channelName
