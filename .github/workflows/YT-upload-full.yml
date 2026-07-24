@@ -179,7 +179,8 @@ jobs:
           ;;
            esac
 
-             VF="scale=${WIDTH}:${HEIGHT}:force_original_aspect_ratio=increase,crop=${WIDTH}:${HEIGHT},${MOVE}" fi
+             VF="scale=${WIDTH}:${HEIGHT}:force_original_aspect_ratio=increase,crop=${WIDTH}:${HEIGHT},${MOVE}"
+             fi
 
               ffmpeg -y -loop 1 -i "$f" -i "$next_f" \
               -vf "$VF,fps=30" \
@@ -189,14 +190,10 @@ jobs:
             # KASUS B: VIDEO + AUDIO
             elif [ $is_vid -eq 1 ] && [ $is_next_aud -eq 1 ]; then
               ffmpeg -y -i "$f" -i "$next_f" \
-              -filter_complex "
-             [0:v]
-             scale=${WIDTH}:${HEIGHT}:force_original_aspect_ratio=increase,
-             crop=${WIDTH}:${HEIGHT}
-             [v]
-              " " \
-              -map "[v]" -map 1:a:0 \
-              $FF_LIGHT -shortest "ready/video_$i.mp4"
+              ffmpeg -y -i "$f" -i "$next_f" \
+              -filter_complex "[0:v]scale=${WIDTH}:${HEIGHT}:force_original_aspect_ratio=increase,crop=${WIDTH}:${HEIGHT}[v]" \
+             -map "[v]" -map 1:a:0 \
+             $FF_LIGHT -shortest "ready/video_$i.mp4"
               i=$((i+2))
 
             # KASUS C: AUDIO SAJA
@@ -208,10 +205,9 @@ jobs:
             # KASUS D: VIDEO SAJA
             else
               ffmpeg -y -i "$f" \
-              force_original_aspect_ratio=increase,
-              crop=${WIDTH}:${HEIGHT}" \
-              -map "[v]" -map 0:a? \
-              $FF_LIGHT -ar 44100 "ready/video_$i.mp4"
+            -filter_complex "[0:v]scale=${WIDTH}:${HEIGHT}:force_original_aspect_ratio=increase,crop=${WIDTH}:${HEIGHT}[v]" \
+            -map "[v]" -map 0:a? \
+            $FF_LIGHT -ar 44100 "ready/video_$i.mp4"
               i=$((i+1))
             fi
           done
