@@ -160,7 +160,7 @@ jobs:
             fi
 
             # KASUS A: GAMBAR + AUDIO (Dengan Efek Gerak Acak)
-            if [ $is_img -eq 1 ] && [ $is_next_aud -eq 1 ]; then
+          if [ $is_img -eq 1 ] && [ $is_next_aud -eq 1 ]; then
               # Pilih arah gerak acak
               dir=$((RANDOM % 4))
 
@@ -180,16 +180,17 @@ jobs:
            esac
 
              VF="scale=${WIDTH}:${HEIGHT}:force_original_aspect_ratio=increase,crop=${WIDTH}:${HEIGHT},${MOVE}"
-             fi
+             
 
               ffmpeg -y -loop 1 -i "$f" -i "$next_f" \
               -vf "$VF,fps=30" \
               $FF_LIGHT -shortest "ready/video_$i.mp4"
               i=$((i+2))
+          fi
 
             # KASUS B: VIDEO + AUDIO
             elif [ $is_vid -eq 1 ] && [ $is_next_aud -eq 1 ]; then
-              ffmpeg -y -i "$f" -i "$next_f" \
+              
               ffmpeg -y -i "$f" -i "$next_f" \
               -filter_complex "[0:v]scale=${WIDTH}:${HEIGHT}:force_original_aspect_ratio=increase,crop=${WIDTH}:${HEIGHT}[v]" \
              -map "[v]" -map 1:a:0 \
