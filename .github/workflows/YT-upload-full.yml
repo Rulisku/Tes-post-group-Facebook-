@@ -49,6 +49,19 @@ jobs:
   proses:
     runs-on: ubuntu-latest
     steps:
+      #Baru👇
+      - name: Checkout Repository
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+
+      - name: Install Dependencies
+        run: |
+          npm install googleapis node-fetch
+      #👆    
       - name: Debug Inputs
         run: |
          echo "channelName = '${{ github.event.inputs.channelName }}'"
@@ -158,6 +171,7 @@ jobs:
           done
           cmd="$cmd -new output.mp4"
           eval $cmd
+          mv output.mp4 video.mp4
 
     #  - name: Upload Artifact
       #  uses: actions/upload-artifact@v4
