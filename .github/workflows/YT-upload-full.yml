@@ -148,7 +148,7 @@ jobs:
             # KASUS B: VIDEO + AUDIO
             elif [ $is_vid -eq 1 ] && [ $is_next_aud -eq 1 ]; then
               ffmpeg -y -i "$f" -i "$next_f" \
-              -filter_complex "[0:v]split=2[bg][fg];[bg]scale=1280:720:force_original_aspect_ratio=increase,boxblur=20,crop=1280:720[bg];[fg]scale='min(iw,1280)':'min(ih,720)':force_original_aspect_ratio=decrease[fg];[bg][fg]overlay=(W-w)/2:(H-h)/2[v]" \
+              -filter_complex "[0:v]scale=720:1280:force_original_aspect_ratio=decrease,pad=ceil(iw/2)*2:ceil(ih/2)*2:(ow-iw)/2:(oh-ih)/2[v]" \
               -map "[v]" -map 1:a:0 \
               $FF_LIGHT -shortest "ready/video_$i.mp4"
               i=$((i+2))
@@ -162,7 +162,7 @@ jobs:
             # KASUS D: VIDEO SAJA
             else
               ffmpeg -y -i "$f" \
-              -filter_complex "[0:v]split=2[bg][fg];[bg]scale=1280:720:force_original_aspect_ratio=increase,boxblur=20,crop=1280:720[bg];[fg]scale='min(iw,1280)':'min(ih,720)':force_original_aspect_ratio=decrease[fg];[bg][fg]overlay=(W-w)/2:(H-h)/2[v]" \
+              -filter_complex "[0:v]scale=720:1280:force_original_aspect_ratio=decrease,pad=ceil(iw/2)*2:ceil(ih/2)*2:(ow-iw)/2:(oh-ih)/2[v]" \
               -map "[v]" -map 0:a? \
               $FF_LIGHT -ar 44100 "ready/video_$i.mp4"
               i=$((i+1))
@@ -205,9 +205,9 @@ jobs:
         env:
           # 🌟 TRIK DINAMIS: Menyusun nama rahasia secara otomatis berdasarkan input channelName
           # Jika input berisi "Channel1", GitHub akan membaca secrets.YOUTUBE_CLIENT_ID_f044_Channel1
-           CLIENT_ID: ${{ secrets[format('YOUTUBE_CLIENT_ID_f044_{0}', github.event.inputs.channelName)] }}
-           CLIENT_SECRET: ${{ secrets[format('YOUTUBE_CLIENT_SECRET_f044_{0}', github.event.inputs.channelName)] }}
-           REFRESH_TOKEN: ${{ secrets[format('YOUTUBE_REFRESH_TOKEN_f044_{0}', github.event.inputs.channelName)] }}
+          # CLIENT_ID: ${{ secrets[format('YOUTUBE_CLIENT_ID_f044_{0}', github.event.inputs.channelName)] }}
+          # CLIENT_SECRET: ${{ secrets[format('YOUTUBE_CLIENT_SECRET_f044_{0}', github.event.inputs.channelName)] }}
+          # REFRESH_TOKEN: ${{ secrets[format('YOUTUBE_REFRESH_TOKEN_f044_{0}', github.event.inputs.channelName)] }}
           
            VIDEO_TITLE: ${{ github.event.inputs.videoTitle }}
            VIDEO_DESCRIPTION: ${{ github.event.inputs.videoDescription }}
