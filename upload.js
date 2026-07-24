@@ -187,7 +187,12 @@ async function upload() {
 
   // 🌟 PROSES KUSTOM THUMBNAIL (Shorts & Video Panjang Anti-Error)
   const thumbId = clean(process.env.THUMBNAIL_ID);
-  if (thumbId && thumbId !== "undefined" && thumbId !== "null" && thumbId !== "") {
+  const videoType = clean(process.env.VIDEO_TYPE);
+  if (videoType === "LONG" &&
+  thumbId &&
+  thumbId !== "undefined" &&
+  thumbId !== "null" &&
+  thumbId !== "") {
     console.log(`Menemukan Thumbnail ID: ${thumbId}. Mengunduh & memasang kustom thumbnail...`);
     try {
       const thumbPath = "thumbnail.jpg";
